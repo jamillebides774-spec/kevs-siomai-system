@@ -690,141 +690,151 @@ def get_all_orders():
 @api.route('/queue/add', methods=['POST'])
 def queue_add():
     """ESP32 button press or mobile app adds to queue."""
-    from app import socketio
-    data = request.get_json() or {}
+    try:
+        from app import socketio
+        data = request.get_json() or {}
 
-    order_type = str(data.get('order_type', 'pickup')).strip().lower()
-    if order_type not in ('pickup', 'delivery', 'dine_in', 'dine-in'):
-        return jsonify({'error': 'Invalid order type. Must be pickup, delivery, or dine_in.'}), 400
+        order_type = str(data.get('order_type', 'pickup')).strip().lower()
+        if order_type not in ('pickup', 'delivery', 'dine_in', 'dine-in'):
+            return jsonify({'error': 'Invalid order type. Must be pickup, delivery, or dine_in.'}), 400
 
-    order_source = str(data.get('type', 'walk-in')).strip().lower()
-    delivery_address = str(data.get('delivery_address', '')).strip()
+        order_source = str(data.get('type', 'walk-in')).strip().lower()
+        delivery_address = str(data.get('delivery_address', '')).strip()
 
-    # Validate customer name
-    raw_name = str(data.get('customer_name', '')).strip() or 'Walk-in Customer'
-    is_valid_name, name_res = _validate_person_name(raw_name, "Pangalan ng kostumer", allow_default=True)
-    if not is_valid_name:
-        return jsonify({'error': name_res}), 400
-    customer_name = name_res
+        # Validate customer name
+        raw_name = str(data.get('customer_name', '')).strip() or 'Walk-in Customer'
+        is_valid_name, name_res = _validate_person_name(raw_name, "Pangalan ng kostumer", allow_default=True)
+        if not is_valid_name:
+            return jsonify({'error': name_res}), 400
+        customer_name = name_res
 
-    # Validate customer phone
-    raw_phone = str(data.get('customer_phone', '')).strip()
-    is_valid_phone, phone_res = _validate_phone_number(raw_phone, required=(order_type == 'delivery'))
-    if not is_valid_phone:
-        return jsonify({'error': phone_res}), 400
-    customer_phone = phone_res
+        # Validate customer phone
+        raw_phone = str(data.get('customer_phone', '')).strip()
+        is_valid_phone, phone_res = _validate_phone_number(raw_phone, required=(order_type == 'delivery'))
+        if not is_valid_phone:
+            return jsonify({'error': phone_res}), 400
+        customer_phone = phone_res
 
-    # Validate delivery coverage (Barangay Gatid, Santa Cruz, Laguna only)
-    is_valid_delivery, delivery_error = _validate_delivery_coverage(order_type, delivery_address)
-    if not is_valid_delivery:
-        return jsonify({'error': delivery_error}), 400
+        # Validate delivery coverage (Barangay Gatid, Santa Cruz, Laguna only)
+        is_valid_delivery, delivery_error = _validate_delivery_coverage(order_type, delivery_address)
+        if not is_valid_delivery:
+            return jsonify({'error': delivery_error}), 400
 
-    # Build order items with validation
-    items_data = data.get('items', [])
+        # Build order items with validation
+        items_data = data.get('items', [])
 
-    is_valid_addons, addon_err = _validate_addon_restrictions(items_data)
-    if not is_valid_addons:
-        return jsonify({'error': addon_err}), 400
+        is_valid_addons, addon_err = _validate_addon_restrictions(items_data)
+        if not is_valid_addons:
+            return jsonify({'error': addon_err}), 400
 
-    total_amount = 0.0
-    order_items_to_add = []
+        total_amount = 0.0
+        order_items_to_add = []
 
-    for it in items_data:
-        prod_id = it.get('product_id')
-        if not prod_id:
-            return jsonify({'error': 'Kailangan ng product_id para sa bawat aytem.'}), 400
-        try:
-            qty = int(it.get('quantity', 1))
-        except (ValueError, TypeError):
-            return jsonify({'error': 'Ang dami ng aytem ay dapat isang wastong numero.'}), 400
-        if qty <= 0 or qty > 500:
-            return jsonify({'error': 'Ang dami ng order ay dapat nasa pagitan ng 1 hanggang 500.'}), 400
+        for it in items_data:
+            prod_id = it.get('product_id')
+            if not prod_id:
+                return jsonify({'error': 'Kailangan ng product_id para sa bawat aytem.'}), 400
+            try:
+                prod_id = int(prod_id)
+            except (ValueError, TypeError):
+                return jsonify({'error': 'Ang dami o ID ng produkto ay hindi wasto.'}), 400
+            try:
+                qty = int(it.get('quantity', 1))
+            except (ValueError, TypeError):
+                return jsonify({'error': 'Ang dami ng aytem ay dapat isang wastong numero.'}), 400
+            if qty <= 0 or qty > 500:
+                return jsonify({'error': 'Ang dami ng order ay dapat nasa pagitan ng 1 hanggang 500.'}), 400
 
-        product = Product.query.get(prod_id)
-        if not product:
-            return jsonify({'error': f'Ang produkto (ID: {prod_id}) ay hindi matagpuan.'}), 400
-        if not product.is_active:
-            return jsonify({'error': f"Ang produktong '{product.name}' ay kasalukuyang hindi available (Inactive) at hindi maaaring i-order."}), 400
-        if product.stock < qty:
-            return jsonify({'error': f'Kulang ang stock para sa {product.name}. Kasalukuyang natitira: {product.stock} {product.unit}.'}), 400
+            product = Product.query.get(prod_id)
+            if not product:
+                return jsonify({'error': f'Ang produkto (ID: {prod_id}) ay hindi matagpuan.'}), 400
+            if not product.is_active:
+                return jsonify({'error': f"Ang produktong '{product.name}' ay kasalukuyang hindi available (Inactive) at hindi maaaring i-order."}), 400
+            if product.stock < qty:
+                return jsonify({'error': f'Kulang ang stock para sa {product.name}. Kasalukuyang natitira: {product.stock} {product.unit}.'}), 400
 
-        subtotal = product.price * qty
-        total_amount += subtotal
-        order_items_to_add.append(OrderItem(
-            product_id=product.id,
-            quantity=qty,
-            unit_price=product.price,
-            subtotal=subtotal
-        ))
+            subtotal = product.price * qty
+            total_amount += subtotal
+            order_items_to_add.append(OrderItem(
+                product_id=product.id,
+                quantity=qty,
+                unit_price=product.price,
+                subtotal=subtotal
+            ))
 
-    if not items_data:
-        try:
-            total_amount = max(0.0, float(data.get('total', 0.0)))
-        except (ValueError, TypeError):
-            total_amount = 0.0
+        if not items_data:
+            try:
+                total_amount = max(0.0, float(data.get('total', 0.0)))
+            except (ValueError, TypeError):
+                total_amount = 0.0
 
-    payment_method = str(data.get('payment_method', 'Cash')).strip()
-    requested_account_id = data.get('payment_account_id')
-    ok_acct, selected_acct, acct_err = _resolve_online_account_for_new_order(payment_method, requested_account_id)
-    if not ok_acct:
+        payment_method = str(data.get('payment_method', 'Cash')).strip()
+        requested_account_id = data.get('payment_account_id')
+        ok_acct, selected_acct, acct_err = _resolve_online_account_for_new_order(payment_method, requested_account_id)
+        if not ok_acct:
+            return jsonify({
+                'error': acct_err,
+                'online_payment_unavailable': True,
+                'available_accounts': _get_payment_accounts_payload()['available_accounts']
+            }), 409
+
+        queue = _get_or_init_queue()
+        queue.current_queue_no += 1
+        laptop_now_utc = datetime.now(timezone.utc)
+        queue.last_updated = laptop_now_utc
+
+        # Online payments must remain 'pending' until an authorized administrator confirms payment
+        raw_pay_status = str(data.get('payment_status', 'pending')).strip().lower()
+        if _is_online_payment_method(payment_method):
+            payment_status = 'pending'
+        else:
+            payment_status = 'confirmed' if raw_pay_status in ('confirmed', 'paid') else 'pending'
+
+        new_order = Order(
+            queue_no=queue.current_queue_no,
+            type=order_source,
+            order_type=order_type,
+            customer_name=customer_name,
+            customer_phone=customer_phone,
+            delivery_address=data.get('delivery_address', ''),
+            status='pending',
+            payment_status=payment_status,
+            payment_method=payment_method,
+            payment_account_id=selected_acct.account_id if selected_acct else '',
+            payment_account_name=(
+                data.get('payment_account_name')
+                or f"{selected_acct.account_name} ({selected_acct.account_holder_name})"
+            ) if selected_acct else '',
+            payment_provider=(
+                data.get('payment_provider') or selected_acct.provider
+            ) if selected_acct else ('Cash' if not _is_online_payment_method(payment_method) else payment_method),
+            total_amount=total_amount,
+            notes=str(data.get('notes', ''))[:500],
+            is_offline=bool(data.get('is_offline', False)),
+            created_at=laptop_now_utc,
+            updated_at=laptop_now_utc,
+        )
+        db.session.add(new_order)
+        db.session.flush()  # get ID
+        for item in order_items_to_add:
+            item.order_id = new_order.id
+            db.session.add(item)
+
+        db.session.commit()
+        _decrease_inventory(new_order)
+        print(f"[NEW WALK-IN ORDER] Ticket #{new_order.queue_no} | {new_order.customer_name} | PHP {new_order.total_amount:.2f} ({new_order.payment_method})", flush=True)
+        _emit_queue_update(socketio, new_order)
+
         return jsonify({
-            'error': acct_err,
-            'online_payment_unavailable': True,
-            'available_accounts': _get_payment_accounts_payload()['available_accounts']
-        }), 409
-
-    queue = _get_or_init_queue()
-    queue.current_queue_no += 1
-    laptop_now_utc = datetime.now(timezone.utc)
-    queue.last_updated = laptop_now_utc
-
-    # Online payments must remain 'pending' until an authorized administrator confirms payment
-    raw_pay_status = str(data.get('payment_status', 'pending')).strip().lower()
-    if _is_online_payment_method(payment_method):
-        payment_status = 'pending'
-    else:
-        payment_status = 'confirmed' if raw_pay_status in ('confirmed', 'paid') else 'pending'
-
-    new_order = Order(
-        queue_no=queue.current_queue_no,
-        type=order_source,
-        order_type=order_type,
-        customer_name=customer_name,
-        customer_phone=customer_phone,
-        delivery_address=data.get('delivery_address', ''),
-        status='pending',
-        payment_status=payment_status,
-        payment_method=payment_method,
-        payment_account_id=selected_acct.account_id if selected_acct else None,
-        payment_account_name=(
-            data.get('payment_account_name')
-            or f"{selected_acct.account_name} ({selected_acct.account_holder_name})"
-        ) if selected_acct else None,
-        payment_provider=(
-            data.get('payment_provider') or selected_acct.provider
-        ) if selected_acct else ('Cash' if not _is_online_payment_method(payment_method) else payment_method),
-        total_amount=total_amount,
-        notes=data.get('notes', ''),
-        is_offline=data.get('is_offline', False),
-        created_at=laptop_now_utc,
-        updated_at=laptop_now_utc,
-    )
-    db.session.add(new_order)
-    db.session.flush()  # get ID
-    for item in order_items_to_add:
-        item.order_id = new_order.id
-        db.session.add(item)
-
-    db.session.commit()
-    _decrease_inventory(new_order)
-    print(f"[NEW WALK-IN ORDER] Ticket #{new_order.queue_no} | {new_order.customer_name} | PHP {new_order.total_amount:.2f} ({new_order.payment_method})", flush=True)
-    _emit_queue_update(socketio, new_order)
-
-    return jsonify({
-        'message': 'Order added to queue',
-        'order': new_order.to_dict(),
-        'queue': queue.to_dict()
-    }), 201
+            'message': 'Order added to queue',
+            'order': new_order.to_dict(),
+            'queue': queue.to_dict()
+        }), 201
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'error': f'Hindi ma-proseso ang order: {str(e)}'}), 500
 
 @api.route('/queue/remove', methods=['POST'])
 def queue_remove():

@@ -294,19 +294,44 @@ def _seed_initial_data():
     from models import User, Product, Order, OrderItem, Sale, Queue, PaymentAccount
     from datetime import datetime, timezone
 
-    # ── Safe non-destructive SQLite column migrations for existing databases ───
-    order_columns = [
-        ("payment_account_id", "VARCHAR(64) DEFAULT ''"),
-        ("payment_account_name", "VARCHAR(120) DEFAULT ''"),
-        ("payment_provider", "VARCHAR(60) DEFAULT ''"),
-        ("payment_confirmed_at", "DATETIME NULL"),
-    ]
-    for col_name, col_def in order_columns:
-        try:
-            db.session.execute(text(f"ALTER TABLE orders ADD COLUMN {col_name} {col_def}"))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
+    # ── Non-destructive column migrations for existing databases (SQLite & PostgreSQL) ───
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        if 'orders' in inspector.get_table_names():
+            existing_cols = {c['name'] for c in inspector.get_columns('orders')}
+            is_postgres = (db.engine.dialect.name == 'postgresql')
+            dt_type = "TIMESTAMP" if is_postgres else "DATETIME"
+            bool_type = "BOOLEAN DEFAULT FALSE" if is_postgres else "INTEGER DEFAULT 0"
+
+            all_possible_cols = [
+                ("order_type", "VARCHAR(20) DEFAULT 'pickup'"),
+                ("customer_id", "INTEGER NULL"),
+                ("customer_phone", "VARCHAR(50) DEFAULT ''"),
+                ("delivery_address", "TEXT DEFAULT ''"),
+                ("status", "VARCHAR(30) DEFAULT 'pending'"),
+                ("payment_status", "VARCHAR(30) DEFAULT 'pending'"),
+                ("payment_method", "VARCHAR(30) DEFAULT 'Cash'"),
+                ("payment_reference", "VARCHAR(100) DEFAULT ''"),
+                ("payment_account_id", "VARCHAR(64) DEFAULT ''"),
+                ("payment_account_name", "VARCHAR(120) DEFAULT ''"),
+                ("payment_provider", "VARCHAR(60) DEFAULT ''"),
+                ("payment_confirmed_at", f"{dt_type} NULL"),
+                ("notes", "TEXT DEFAULT ''"),
+                ("is_offline", bool_type),
+                ("updated_at", f"{dt_type} NULL"),
+            ]
+            for col_name, col_def in all_possible_cols:
+                if col_name not in existing_cols:
+                    try:
+                        db.session.execute(text(f"ALTER TABLE orders ADD COLUMN {col_name} {col_def}"))
+                        db.session.commit()
+                        print(f"✅ [DB Migration] Added missing column orders.{col_name}", flush=True)
+                    except Exception as me:
+                        db.session.rollback()
+                        print(f"⚠️ [DB Migration Warning] orders.{col_name}: {me}", flush=True)
+    except Exception as e:
+        print(f"⚠️ [DB Migration Error]: {e}", flush=True)
 
     # ── Admin user ─────────────────────────────────────────────────────────────
     if not User.query.first():

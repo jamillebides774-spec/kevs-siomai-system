@@ -30044,7 +30044,7 @@ q="http://"+h+":5000/api"
 s=1
 break}if(J.d(i,"localhost")){q="http://localhost:5000/api"
 s=1
-break}}catch(d){}q="http://localhost:5000/api"
+break}}catch(d){}q=(typeof window!=="undefined"&&window.location?window.location.origin+"/api":"https://kevs-siomai.onrender.com/api")
 s=1
 break
 case 1:return A.B(q,r)

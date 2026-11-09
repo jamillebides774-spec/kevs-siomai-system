@@ -17,22 +17,25 @@
   -->
   <base href="/mobile/">
   <script>
-    // Dynamically set base href to support both Flask (/mobile/) and standalone dev servers (/)
+    // Dynamically set base href and synchronize backend base URL
     (function () {
       var base = document.querySelector('base');
       if (base && !window.location.pathname.startsWith('/mobile')) {
         base.setAttribute('href', '/');
       }
-    })();
-    // Clean up any stale localhost or HTTP URLs from browser storage on Render HTTPS
-    try {
-      if (window.location.protocol === 'https:' || window.location.hostname.includes('onrender.com')) {
-        var saved = window.localStorage.getItem('flutter.backend_base_url');
-        if (saved && (saved.includes('localhost') || saved.includes(':5000') || saved.indexOf('http:') !== -1)) {
-          window.localStorage.removeItem('flutter.backend_base_url');
+      try {
+        var origin = window.location.origin;
+        if (origin && (origin.startsWith('https:') || origin.indexOf('onrender.com') !== -1 || window.location.port === '' || window.location.port === '443')) {
+          // On cloud Render HTTPS, guarantee API calls use the live backend origin
+          window.localStorage.setItem('flutter.backend_base_url', origin + '/api');
+        } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          var saved = window.localStorage.getItem('flutter.backend_base_url');
+          if (!saved || saved.indexOf('onrender.com') !== -1) {
+            window.localStorage.setItem('flutter.backend_base_url', 'http://' + window.location.hostname + ':5000/api');
+          }
         }
-      }
-    } catch (e) {}
+      } catch (e) {}
+    })();
   </script>
 
   <meta charset="UTF-8">
