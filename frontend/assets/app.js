@@ -461,7 +461,9 @@ function updateOfflineUI() {
 // ── Socket.IO Connection & Real-time Synchronization ────────────────────────
 function initSocket() {
   if (state.socket) return;
-  const socketUrl = window.location.port === '5000' ? window.location.origin : 'http://localhost:5000';
+  const socketUrl = (window.location.hostname === 'localhost' && window.location.port === '5173')
+    ? 'http://localhost:5000'
+    : window.location.origin;
 
   if (typeof io !== 'undefined') {
     // Use polling transport without upgrade to ensure 100% stable connection on Flask/Werkzeug

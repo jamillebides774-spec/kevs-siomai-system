@@ -865,16 +865,42 @@ def queue_call_next():
 
 @api.route('/queue/display', methods=['GET'])
 def queue_display():
-    """Endpoint for ESP32 OLED to poll current queue state."""
+    """Endpoint for ESP32 dual-OLED + dual-buzzer hardware to poll current queue & kitchen state."""
     queue = _get_or_init_queue()
+    active_orders = Order.query.filter(
+        Order.status.notin_(['completed', 'delivered', 'cancelled'])
+    ).order_by(Order.created_at.desc(), Order.id.desc()).all()
+
     now_serving_order = Order.query.filter(
         Order.queue_no == queue.now_serving,
         Order.status.notin_(['completed', 'delivered', 'cancelled'])
     ).first()
+
+    pending_count = sum(1 for o in active_orders if o.status == 'pending')
+    preparing_count = sum(1 for o in active_orders if o.status in ('accepted', 'preparing'))
+    ready_count = sum(1 for o in active_orders if o.status in ('ready_pickup', 'ready_delivery', 'out_for_delivery'))
+
+    low_stock_products = Product.query.filter(
+        Product.is_active == True,
+        Product.stock <= (Product.max_stock * 0.20)
+    ).all()
+
+    latest_order = active_orders[0] if active_orders else None
+
     return jsonify({
-        'now_serving': queue.now_serving,
+        'now_serving': queue.now_serving if active_orders else 0,
         'next_queue': queue.current_queue_no,
-        'now_serving_status': now_serving_order.status if now_serving_order else 'completed'
+        'now_serving_status': now_serving_order.status if now_serving_order else 'idle',
+        'now_serving_customer': (now_serving_order.customer_name or 'Guest')[:14] if now_serving_order else '-',
+        'active_count': len(active_orders),
+        'pending_count': pending_count,
+        'preparing_count': preparing_count,
+        'ready_count': ready_count,
+        'latest_ticket': latest_order.queue_no if latest_order else 0,
+        'latest_customer': (latest_order.customer_name or 'Guest')[:12] if latest_order else '-',
+        'latest_total': float(latest_order.total_amount) if latest_order else 0.0,
+        'low_stock_count': len(low_stock_products),
+        'low_stock_item': low_stock_products[0].name[:14] if low_stock_products else ''
     }), 200
 
 @api.route('/queue/reset', methods=['POST'])
@@ -1899,10 +1925,11 @@ def initiate_gcash():
         print(f"[Firebase Initiate GCash Sync Notice]: {fe}")
     _emit_queue_update(socketio, updated_order=order)
 
+    base_url = request.host_url.rstrip('/')
     return jsonify({
         'message': 'Online payment initiated (awaiting admin confirmation)',
         'reference': ref,
-        'checkout_url': f"http://localhost:5000/api/payments/gcash/mock-pay?ref={ref}&order_id={order.id}",
+        'checkout_url': f"{base_url}/api/payments/gcash/mock-pay?ref={ref}&order_id={order.id}",
         'order_id': order.id,
         'order': order.to_dict(),
         'account': selected_acct.to_dict() if selected_acct else None

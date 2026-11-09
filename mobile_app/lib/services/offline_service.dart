@@ -30,7 +30,13 @@ class OfflineService {
     final saved = prefs.getString(_keyBackendUrl);
     if (saved != null && saved.isNotEmpty) return saved;
 
-    // Smart default: If opened in a browser/phone, use current host IP
+    // Smart default: If opened in a browser/phone (Web PWA / Render), use current origin directly
+    try {
+      if (Uri.base.origin.isNotEmpty && Uri.base.origin.startsWith('http')) {
+        return '${Uri.base.origin}/api';
+      }
+    } catch (_) {}
+
     final host = Uri.base.host;
     if (host.isNotEmpty && host != '0.0.0.0' && host != 'localhost') {
       return 'http://$host:5000/api';

@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Open access for Kevs Siomai POS, web app, and mobile customer app REST endpoints
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+

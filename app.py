@@ -35,7 +35,7 @@ PYTHON_EXE = VENV_PYTHON if os.path.exists(VENV_PYTHON) else sys.executable
 
 def print_banner():
     print('\n' + '=' * 68)
-    print('    KEVS SIOMAI — INTEGRATED ORDER MANAGEMENT SYSTEM')
+    print('       KEVS SIOMAI — INTEGRATED ORDER MANAGEMENT SYSTEM')
     print('=' * 68)
     print('  Admin Dashboard:    http://localhost:5000')
     print('  Customer Mobile App: http://localhost:5000/mobile')
@@ -55,10 +55,25 @@ def open_browser_once(url, delay=1.8):
     threading.Thread(target=_go, daemon=True).start()
 
 
+def get_local_ip():
+    """Detect the active local Wi-Fi / LAN IP address."""
+    try:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return 'localhost'
+
+
 def main():
+    local_ip = get_local_ip()
+    url = f'http://{local_ip}:5000/'
     print_banner()
-    url = 'http://192.168.123.39:5000/'
-    print(f'  ➜ {url}/\n')
+    print(f'  ➜ Local Access:     http://localhost:5000')
+    print(f'  ➜ Network (ESP32):   {url}\n')
 
     # Prevent backend from opening a second browser window
     env = os.environ.copy()
