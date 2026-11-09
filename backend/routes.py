@@ -914,10 +914,14 @@ def queue_display():
     latest_order = Order.query.order_by(Order.id.desc()).first()
     completed_count = Order.query.filter(Order.status.in_(['completed', 'delivered'])).count()
 
+    has_active = len(active_orders) > 0
+    now_serving_display = queue.now_serving if has_active else 0
+
     return jsonify({
-        'now_serving': queue.now_serving,
+        'now_serving': now_serving_display,
+        'has_active': has_active,
         'next_queue': queue.current_queue_no,
-        'now_serving_status': now_serving_order.status if now_serving_order else ('idle' if not active_orders else 'serving'),
+        'now_serving_status': now_serving_order.status if now_serving_order else 'idle',
         'now_serving_customer': (now_serving_order.customer_name or 'Guest')[:14] if now_serving_order else '-',
         'active_count': len(active_orders),
         'pending_count': pending_count,

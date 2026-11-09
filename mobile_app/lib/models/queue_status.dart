@@ -19,12 +19,16 @@ class QueueStatus {
     final q = json['queue'] as Map<String, dynamic>? ?? {};
     final stats = json['stats'] as Map<String, dynamic>? ?? {};
 
+    final bool hasActiveVal = (q['has_active'] == true || stats['has_active'] == true);
+    final int rawServing = int.tryParse((stats['now_serving'] ?? q['now_serving'] ?? 0).toString()) ?? 0;
+    final int nowServingVal = hasActiveVal ? rawServing : 0;
+
     return QueueStatus(
-      currentQueueNo: q['current_queue_no'] ?? 0,
-      nowServing: stats['now_serving'] ?? q['now_serving'] ?? 0,
-      hasActive: q['has_active'] ?? stats['has_active'] ?? false,
-      activeOrders: stats['active_orders'] ?? 0,
-      pendingOrders: stats['pending_orders'] ?? 0,
+      currentQueueNo: int.tryParse((q['current_queue_no'] ?? 0).toString()) ?? 0,
+      nowServing: nowServingVal,
+      hasActive: hasActiveVal,
+      activeOrders: int.tryParse((stats['active_orders'] ?? 0).toString()) ?? 0,
+      pendingOrders: int.tryParse((stats['pending_orders'] ?? 0).toString()) ?? 0,
       timestamp: json['timestamp'] ?? DateTime.now().toIso8601String(),
     );
   }
