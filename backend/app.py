@@ -171,9 +171,17 @@ def create_app(test_config=None):
         return resp
 
     # ── Mobile App Static File Server (/mobile) ───────────────────────────────
+    import mimetypes
+    mimetypes.add_type('application/javascript', '.js')
+    mimetypes.add_type('application/wasm', '.wasm')
+
     mobile_build_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mobile_app', 'build', 'web'))
 
-    @app.route('/mobile', defaults={'path': ''})
+    @app.route('/mobile')
+    def redirect_mobile():
+        from flask import redirect
+        return redirect('/mobile/', code=302)
+
     @app.route('/mobile/', defaults={'path': ''})
     @app.route('/mobile/<path:path>')
     def serve_mobile_app(path):
@@ -185,7 +193,9 @@ def create_app(test_config=None):
                         return send_from_directory(mobile_build_dir, path)
                 index = os.path.join(mobile_build_dir, 'index.html')
                 if os.path.isfile(index):
-                    return send_from_directory(mobile_build_dir, 'index.html')
+                    resp = send_from_directory(mobile_build_dir, 'index.html')
+                    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                    return resp
             return '<h2>Mobile build not found. Please build the mobile web app first.</h2>', 404
         except Exception as e:
             import traceback
