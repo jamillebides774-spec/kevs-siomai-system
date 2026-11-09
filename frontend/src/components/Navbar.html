@@ -1,0 +1,332 @@
+<!-- 
+  ==============================================================================
+  NAVBAR COMPONENT (HTML + CSS + JS)
+  ==============================================================================
+  Self-contained HTML component: includes markup, <style>, and <script>.
+-->
+
+<nav id="app-navbar" class="navbar-wrapper">
+  <div class="navbar-container">
+    <!-- Brand Logo -->
+    <div class="nav-brand" onclick="navigateToTab('queue')">
+      <img src="/images/brand_logo.png" alt="HOTSPOT Siomai" style="width: 42px; height: 42px; border-radius: 50%;" />
+      <div>
+        <div class="nav-brand-title"><span style="color:#ef4444;text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff;">HOTSPOT</span> <span style="font-family:'Brush Script MT',cursive;color:#ffffff;">Siomai</span></div>
+        <div class="nav-brand-sub" style="background:#090d16;border:1px solid rgba(255,255,255,0.8);border-radius:4px;padding:1px 6px;color:#ffffff;">STA. CRUZ FAMOUS SIOMAI</div>
+      </div>
+    </div>
+
+    <!-- Live Queue Badges -->
+    <div class="nav-queue-pill">
+      <span class="pill-label">Now Serving:</span>
+      <span class="pill-val orange" id="nav-now-serving">#--</span>
+      <span class="pill-sep">|</span>
+      <span class="pill-label">Queue:</span>
+      <span class="pill-val" id="nav-current-queue">#--</span>
+      <span id="nav-active-pill" style="display: none;">
+        <span class="pill-sep">|</span>
+        <span class="pulse-dot"></span>
+        <span class="pill-val yellow" id="nav-active-count">0 active</span>
+      </span>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs-group">
+      <button class="nav-tab active" data-tab="queue" onclick="navigateToTab('queue')">
+        <span class="tab-text">Queue</span>
+      </button>
+      <button class="nav-tab" data-tab="completed" onclick="navigateToTab('completed')">
+        <span class="tab-text">Completed</span>
+      </button>
+      <button class="nav-tab" data-tab="inventory" onclick="navigateToTab('inventory')">
+        <span class="tab-text">Inventory</span>
+      </button>
+      <button class="nav-tab" data-tab="analytics" onclick="navigateToTab('analytics')">
+        <span class="tab-text">Analytics</span>
+      </button>
+      <button class="nav-tab" data-tab="simulator" onclick="navigateToTab('simulator')">
+        <span class="tab-text">Hardware</span>
+      </button>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="nav-right-controls">
+      <!-- Online / Offline Status -->
+      <div class="status-indicator-pill" id="nav-net-status">
+        <span class="status-dot green" id="nav-net-dot"></span>
+        <span id="nav-net-label">Online</span>
+      </div>
+
+      <!-- Sync Button -->
+      <button id="nav-sync-btn" class="nav-ctrl-btn" onclick="triggerManualSync()" title="Sync offline orders" style="display: none;">
+        Sync <span class="badge-count" id="nav-sync-count">0</span>
+      </button>
+
+      <!-- Audio Alert Toggle -->
+      <button id="nav-audio-btn" class="nav-ctrl-btn" onclick="toggleAudio()" title="Sound alerts">
+        Audio
+      </button>
+
+      <!-- User Profile & Logout -->
+      <div class="nav-user-box">
+        <span class="user-name-display" id="nav-user-name">Admin</span>
+        <button class="nav-logout-btn" onclick="logoutUser()">Logout</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<style>
+  .navbar-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #334155;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .navbar-container {
+    max-width: 1536px;
+    margin: 0 auto;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    height: 64px;
+    gap: 16px;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .nav-brand-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f97316, #c2540a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+  }
+  .nav-brand-title {
+    font-weight: 800;
+    font-size: 15px;
+    color: #ffffff;
+    line-height: 1.2;
+  }
+  .nav-brand-sub {
+    font-size: 10px;
+    font-weight: 600;
+    color: #fb923c;
+    letter-spacing: 0.5px;
+  }
+  .nav-queue-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: #1e293b;
+    border-radius: 12px;
+    border: 1px solid #334155;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .pill-label { color: #94a3b8; }
+  .pill-val { font-weight: 700; color: #ffffff; }
+  .pill-val.orange { color: #fb923c; }
+  .pill-val.yellow { color: #facc15; }
+  .pill-sep { color: #475569; }
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #facc15;
+    display: inline-block;
+    animation: navPulse 1.5s infinite;
+  }
+
+  .nav-tabs-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    justify-content: center;
+  }
+  .nav-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-tab:hover {
+    color: #f1f5f9;
+    background: #1e293b;
+  }
+  .nav-tab.active {
+    background: rgba(249, 115, 22, 0.15);
+    color: #fb923c;
+    border-color: rgba(249, 115, 22, 0.3);
+  }
+
+  .nav-right-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .status-indicator-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 9999px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .status-dot.green { background: #10b981; box-shadow: 0 0 6px #10b981; }
+  .status-dot.red   { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+
+  .nav-ctrl-btn {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #f1f5f9;
+    padding: 6px 10px;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    position: relative;
+  }
+  .nav-ctrl-btn:hover { background: #334155; }
+  .badge-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #f97316;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    border-radius: 9999px;
+    padding: 2px 6px;
+  }
+
+  .nav-user-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-left: 1px solid #334155;
+    padding-left: 12px;
+  }
+  .user-name-display {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f1f5f9;
+  }
+  .nav-logout-btn {
+    background: none;
+    border: none;
+    color: #f87171;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+  }
+  .nav-logout-btn:hover { background: rgba(239, 68, 68, 0.1); }
+
+  @keyframes navPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.15); }
+  }
+
+  @media (max-width: 768px) {
+    .nav-queue-pill, .tab-text, .user-name-display { display: none; }
+  }
+</style>
+
+<script>
+  let isSoundEnabled = true;
+
+  function navigateToTab(tabName) {
+    document.querySelectorAll('.nav-tab').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-tab') === tabName);
+    });
+
+    if (window.onTabSelected) {
+      window.onTabSelected(tabName);
+    }
+  }
+
+  function toggleAudio() {
+    isSoundEnabled = !isSoundEnabled;
+    const btn = document.getElementById('nav-audio-btn');
+    if (btn) btn.textContent = isSoundEnabled ? 'Audio' : 'Muted';
+    if (window.showToast) {
+      window.showToast('info', 'Audio', isSoundEnabled ? 'Sound alerts unmuted' : 'Sound alerts muted');
+    }
+  }
+
+  function triggerManualSync() {
+    if (window.syncOfflineData) {
+      window.syncOfflineData();
+    }
+  }
+
+  function logoutUser() {
+    localStorage.removeItem('kevs_user');
+    window.location.reload();
+  }
+
+  // Update navbar live stats
+  function updateNavbarQueueStats(nowServing, currentQueue, activeCount) {
+    const elNow = document.getElementById('nav-now-serving');
+    const elCur = document.getElementById('nav-current-queue');
+    const elPill = document.getElementById('nav-active-pill');
+    const elAct = document.getElementById('nav-active-count');
+
+    if (elNow) elNow.textContent = `#${nowServing ?? '--'}`;
+    if (elCur) elCur.textContent = `#${currentQueue ?? '--'}`;
+    if (elPill && elAct) {
+      if (activeCount > 0) {
+        elPill.style.display = 'inline-flex';
+        elAct.textContent = `${activeCount} active`;
+      } else {
+        elPill.style.display = 'none';
+      }
+    }
+  }
+
+  // Update network indicator
+  function updateNavbarNetworkStatus(isOnline) {
+    const dot = document.getElementById('nav-net-dot');
+    const label = document.getElementById('nav-net-label');
+    if (dot && label) {
+      dot.className = isOnline ? 'status-dot green' : 'status-dot red';
+      label.textContent = isOnline ? 'Online' : 'Offline';
+    }
+  }
+
+  window.updateNavbarQueueStats = updateNavbarQueueStats;
+  window.updateNavbarNetworkStatus = updateNavbarNetworkStatus;
+</script>

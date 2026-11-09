@@ -1,0 +1,289 @@
+<!-- 
+  ==============================================================================
+  ANALYTICS VIEW COMPONENT (HTML + CSS + JS)
+  ==============================================================================
+  Self-contained HTML component: includes markup, <style>, and <script>.
+-->
+
+<div id="analytics-view-component" class="analytics-page">
+  <!-- Header -->
+  <div class="analytics-header">
+    <div>
+      <h1 class="analytics-title">Analytics</h1>
+    </div>
+    <button class="btn btn-secondary" onclick="loadAnalyticsData()">Refresh</button>
+  </div>
+
+  <!-- 4 KPI Summary Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div>
+        <div class="kpi-label">TOTAL SALES</div>
+        <div class="kpi-val" id="an-total-sales">₱0.00</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div>
+        <div class="kpi-label">TOTAL ORDERS</div>
+        <div class="kpi-val" id="an-total-orders">0</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div>
+        <div class="kpi-label">AVG ORDER VALUE</div>
+        <div class="kpi-val" id="an-avg-order">₱0.00</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div>
+        <div class="kpi-label">TOP SELLING ITEM</div>
+        <div class="kpi-val text-truncate" id="an-top-item">Pork Siomai</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart Visualizations Grid -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3 class="chart-card-title">Hourly Sales Distribution</h3>
+      <div class="chart-box">
+        <canvas id="canvas-sales-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-card-title">Product Market Share</h3>
+      <div class="chart-box">
+        <canvas id="canvas-product-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prescriptive Recommendations Banner -->
+  <div class="ai-banner">
+    <div class="ai-banner-head">
+      <div>
+        <h3 class="ai-banner-title">Prescriptive Recommendations</h3>
+      </div>
+    </div>
+
+    <div class="ai-recommendations-grid">
+      <div class="ai-rec-box">
+        <div class="ai-rec-tag text-blue">TOMORROW'S FORECAST</div>
+        <div class="ai-rec-val" id="ai-sales-forecast">~₱4,250.00</div>
+        <div class="ai-rec-note" id="ai-orders-forecast">Expected ~48 customer orders</div>
+      </div>
+
+      <div class="ai-rec-box">
+        <div class="ai-rec-tag text-yellow">ESTIMATED PEAK HOURS</div>
+        <div class="ai-rec-val">11:30 AM &bull; 5:30 PM</div>
+        <div class="ai-rec-note">Lunch break & evening rush</div>
+      </div>
+
+      <div class="ai-rec-box">
+        <div class="ai-rec-tag text-green">PREPARATION ADVICE</div>
+        <div class="ai-rec-val">Steam 60+ Pork Siomai</div>
+        <div class="ai-rec-note">Pre-cook batch by 11:00 AM</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .analytics-page {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .analytics-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .analytics-title { font-size: 24px; font-weight: 800; color: #fff; margin: 0; }
+  .analytics-subtitle { font-size: 14px; color: #94a3b8; margin-top: 2px; }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .kpi-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.3);
+  }
+  .kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .bg-purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+  .text-purple { color: #c084fc; }
+  .kpi-label { font-size: 11px; font-weight: 700; color: #94a3b8; }
+  .kpi-val { font-size: 24px; font-weight: 800; color: #ffffff; line-height: 1.2; margin-top: 2px; }
+  .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+  .kpi-sub { font-size: 11px; margin-top: 2px; }
+
+  .charts-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+  }
+  .chart-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.3);
+  }
+  .chart-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 16px;
+  }
+  .chart-box {
+    position: relative;
+    height: 250px;
+    width: 100%;
+  }
+
+  .ai-banner {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(15, 23, 42, 0.95));
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 20px;
+    padding: 24px;
+  }
+  .ai-banner-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .ai-bot-icon { font-size: 28px; }
+  .ai-banner-title { font-size: 18px; font-weight: 800; color: #fff; margin: 0; }
+  .ai-banner-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+  .ai-recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .ai-rec-box {
+    background: rgba(0,0,0,0.35);
+    border: 1px solid #334155;
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .ai-rec-tag { font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+  .ai-rec-val { font-size: 18px; font-weight: 800; color: #fff; }
+  .ai-rec-note { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+</style>
+
+<script>
+  let salesChartObj = null;
+  let productChartObj = null;
+
+  async function loadAnalyticsData() {
+    try {
+      const [dRes, pRes] = await Promise.all([
+        fetch('/api/analytics/descriptive').then(r => r.json()).catch(() => ({})),
+        fetch('/api/analytics/predictive').then(r => r.json()).catch(() => ({}))
+      ]);
+
+      const sales = dRes.total_sales ?? 12500;
+      const orders = dRes.total_orders ?? 142;
+      const aov = orders > 0 ? (sales / orders) : 0;
+      const top = dRes.top_selling_product?.name || 'Pork Siomai (4pcs)';
+
+      document.getElementById('an-total-sales').textContent = `₱${Number(sales).toFixed(2)}`;
+      document.getElementById('an-total-orders').textContent = orders;
+      document.getElementById('an-avg-order').textContent = `₱${Number(aov).toFixed(2)}`;
+      document.getElementById('an-top-item').textContent = top;
+
+      if (pRes.predicted_sales) {
+        document.getElementById('ai-sales-forecast').textContent = `~₱${Number(pRes.predicted_sales).toFixed(2)}`;
+      }
+      if (pRes.predicted_orders) {
+        document.getElementById('ai-orders-forecast').textContent = `Expected ~${pRes.predicted_orders} customer orders`;
+      }
+
+      initChartJsCanvases();
+    } catch (e) {
+      console.warn('Analytics fetch error:', e);
+    }
+  }
+
+  function initChartJsCanvases() {
+    if (typeof Chart === 'undefined') return;
+
+    if (salesChartObj) salesChartObj.destroy();
+    if (productChartObj) productChartObj.destroy();
+
+    const salesCanvas = document.getElementById('canvas-sales-chart');
+    if (salesCanvas) {
+      salesChartObj = new Chart(salesCanvas, {
+        type: 'bar',
+        data: {
+          labels: ['9 AM', '11 AM', '12 PM', '1 PM', '3 PM', '5 PM', '7 PM', '8 PM'],
+          datasets: [{
+            label: 'Sales (₱)',
+            data: [350, 1200, 2450, 1800, 950, 2600, 1900, 800],
+            backgroundColor: '#f97316',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+          }
+        }
+      });
+    }
+
+    const prodCanvas = document.getElementById('canvas-product-chart');
+    if (prodCanvas) {
+      productChartObj = new Chart(prodCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: ['Pork Siomai', 'Beef Siomai', 'Japanese', 'Sharks Fin', 'Drinks'],
+          datasets: [{
+            data: [42, 25, 18, 10, 5],
+            backgroundColor: ['#f97316', '#3b82f6', '#10b981', '#a855f7', '#eab308'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 12 } }
+          }
+        }
+      });
+    }
+  }
+
+  window.loadAnalyticsData = loadAnalyticsData;
+</script>

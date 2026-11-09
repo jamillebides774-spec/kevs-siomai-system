@@ -1,0 +1,541 @@
+<!-- 
+  ==============================================================================
+  QUEUE DASHBOARD COMPONENT (HTML + CSS + JS)
+  ==============================================================================
+  Self-contained HTML component: includes markup, <style>, and <script>.
+-->
+
+<div id="queue-dashboard-component" class="queue-page">
+  <!-- Top Action Bar -->
+  <div class="header-row">
+    <div>
+      <h1 class="page-title">Live Queue</h1>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="openNewOrderModal()">
+        New Walk-in Order
+      </button>
+      <button class="btn btn-success" onclick="callNextCustomer()">
+        Call Next
+      </button>
+      <button class="btn btn-secondary text-red" onclick="resetQueueCounter()">
+        Reset Queue
+      </button>
+      <button class="btn btn-secondary" onclick="loadQueueDashboardData()">
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- 4 Stat Metric Cards -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div>
+        <div class="metric-label">NOW SERVING</div>
+        <div class="metric-value" id="stat-now-serving">#--</div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div>
+        <div class="metric-label">WAITING IN QUEUE</div>
+        <div class="metric-value" id="stat-waiting-count">0</div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div>
+        <div class="metric-label">COMPLETED TODAY</div>
+        <div class="metric-value" id="stat-completed-count">0</div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div>
+        <div class="metric-label">TODAY'S SALES</div>
+        <div class="metric-value" id="stat-sales-total">₱0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Serving Order Callout Card -->
+  <div id="active-order-banner" class="active-banner" style="display: none;">
+    <div class="banner-left">
+      <div class="ticket-badge">
+        <span class="ticket-small">TICKET</span>
+        <span class="ticket-number" id="active-ticket-num">#--</span>
+      </div>
+      <div>
+        <div class="active-cust-line">
+          <h2 class="active-name" id="active-cust-name">Walk-in Customer</h2>
+          <span class="status-badge orange" id="active-status-badge">Preparing</span>
+        </div>
+        <p class="active-desc" id="active-order-desc">Loading items...</p>
+      </div>
+    </div>
+
+    <div class="banner-right">
+      <div class="price-box">
+        <div class="price-label">Total Amount</div>
+        <div class="price-val" id="active-total-price">₱0.00</div>
+      </div>
+      <button class="btn btn-secondary" onclick="buzzActiveCustomer()">Buzz</button>
+      <button class="btn btn-success" onclick="completeActiveOrder()">Complete</button>
+    </div>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="toolbar-row">
+    <div class="filter-tab-bar">
+      <button class="filter-btn active" data-stage="all" onclick="filterQueue('all', this)">All</button>
+      <button class="filter-btn" data-stage="pending" onclick="filterQueue('pending', this)">Pending</button>
+      <button class="filter-btn" data-stage="preparing" onclick="filterQueue('preparing', this)">Preparing</button>
+      <button class="filter-btn" data-stage="ready" onclick="filterQueue('ready', this)">Ready</button>
+      <button class="filter-btn" data-stage="completed" onclick="filterQueue('completed', this)">Completed</button>
+    </div>
+
+    <div class="search-wrap">
+      <input type="text" id="queue-search-field" class="search-input" placeholder="Search customer or order #..." oninput="handleQueueSearch(this.value)" />
+    </div>
+  </div>
+
+  <!-- Queue Orders Cards Grid -->
+  <div class="orders-cards-grid" id="queue-orders-container">
+    <div class="empty-state-card">
+      <div>Loading queue orders...</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .queue-page {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .header-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .page-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0;
+  }
+  .page-subtitle {
+    font-size: 14px;
+    color: #94a3b8;
+    margin-top: 2px;
+  }
+  .btn-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: #f97316; color: #fff; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3); }
+  .btn-primary:hover { background: #ea580c; }
+  .btn-success { background: #10b981; color: #fff; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3); }
+  .btn-success:hover { background: #059669; }
+  .btn-secondary { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
+  .btn-secondary:hover { background: #334155; color: #fff; }
+  .text-red { color: #f87171 !important; }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .metric-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.3);
+  }
+  .metric-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .bg-orange { background: rgba(249, 115, 22, 0.15); color: #fb923c; }
+  .bg-yellow { background: rgba(234, 179, 8, 0.15); color: #facc15; }
+  .bg-green  { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+  .bg-blue   { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+  .metric-label { font-size: 11px; font-weight: 700; color: #94a3b8; }
+  .metric-value { font-size: 28px; font-weight: 800; color: #ffffff; line-height: 1.2; margin-top: 2px; }
+  .metric-sub   { font-size: 11px; margin-top: 2px; }
+  .text-orange  { color: #fb923c; }
+  .text-yellow  { color: #facc15; }
+  .text-green   { color: #34d399; }
+  .text-blue    { color: #60a5fa; }
+
+  .active-banner {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(15, 23, 42, 0.95));
+    border: 2px solid #f97316;
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .banner-left { display: flex; align-items: center; gap: 16px; }
+  .ticket-badge {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: #f97316;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+  }
+  .ticket-small { font-size: 10px; opacity: 0.8; }
+  .ticket-number { font-size: 26px; line-height: 1; }
+  .active-cust-line { display: flex; align-items: center; gap: 10px; }
+  .active-name { font-size: 20px; font-weight: 800; color: #fff; margin: 0; }
+  .active-desc { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+  .banner-right { display: flex; align-items: center; gap: 12px; }
+  .price-box { text-align: right; margin-right: 8px; }
+  .price-label { font-size: 11px; color: #94a3b8; }
+  .price-val { font-size: 20px; font-weight: 800; color: #34d399; }
+
+  .toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .filter-tab-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    padding: 4px;
+    border-radius: 12px;
+  }
+  .filter-btn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover { color: #fff; }
+  .filter-btn.active { background: #f97316; color: #fff; }
+  .search-wrap { position: relative; width: 280px; }
+  .search-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #ffffff;
+    outline: none;
+  }
+  .search-input:focus { border-color: #f97316; }
+
+  .orders-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .order-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .order-card:hover {
+    border-color: #f97316;
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px -10px rgba(249, 115, 22, 0.2);
+  }
+  .order-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .order-ticket { font-size: 18px; font-weight: 800; color: #fb923c; }
+  .status-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    text-transform: capitalize;
+  }
+  .status-badge.yellow { background: rgba(234, 179, 8, 0.2); color: #facc15; }
+  .status-badge.orange { background: rgba(249, 115, 22, 0.2); color: #fb923c; }
+  .status-badge.green  { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+  .status-badge.gray   { background: rgba(71, 85, 105, 0.4); color: #94a3b8; }
+  .status-badge.red    { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+  .order-cust-name { font-size: 15px; font-weight: 700; color: #fff; }
+  .order-items-snippet { font-size: 12px; color: #94a3b8; margin-top: 4px; line-height: 1.4; }
+  .order-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid #334155;
+  }
+  .order-total-price { font-size: 15px; font-weight: 800; color: #34d399; }
+  .empty-state-card {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px;
+    background: #1e293b;
+    border-radius: 16px;
+    color: #94a3b8;
+  }
+</style>
+
+<script>
+  let queueOrdersData = [];
+  let currentStageFilter = 'all';
+  let currentSearchQuery = '';
+
+  async function loadQueueDashboardData() {
+    try {
+      const [qRes, sRes] = await Promise.all([
+        fetch('/api/queue').then(r => r.json()),
+        fetch('/api/dashboard/stats').then(r => r.json()).catch(() => ({}))
+      ]);
+
+      queueOrdersData = qRes.orders || [];
+      const queueObj = qRes.queue || {};
+
+      const nowServing = queueObj.now_serving_number || (queueOrdersData.find(o => o.status === 'preparing')?.queue_number) || '--';
+      const waiting = queueOrdersData.filter(o => ['pending', 'accepted', 'preparing'].includes(o.status)).length;
+      const completed = sRes.completed_orders ?? queueOrdersData.filter(o => o.status === 'completed').length;
+      const revenue = sRes.total_sales ?? queueOrdersData.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.total || 0), 0);
+
+      document.getElementById('stat-now-serving').textContent = `#${nowServing}`;
+      document.getElementById('stat-waiting-count').textContent = waiting;
+      document.getElementById('stat-completed-count').textContent = completed;
+      document.getElementById('stat-sales-total').textContent = `₱${Number(revenue).toFixed(2)}`;
+
+      // Update active banner
+      const active = queueOrdersData.find(o => String(o.queue_number) === String(nowServing) || o.status === 'preparing') || queueOrdersData[0];
+      const bannerEl = document.getElementById('active-order-banner');
+      if (active && bannerEl) {
+        bannerEl.style.display = 'flex';
+        document.getElementById('active-ticket-num').textContent = `#${active.queue_number || '--'}`;
+        document.getElementById('active-cust-name').textContent = active.customer_name || 'Walk-in Customer';
+        document.getElementById('active-order-desc').textContent = (active.items || []).map(i => `${i.quantity}x ${i.product_name || i.name || 'Siomai'}`).join(', ');
+        document.getElementById('active-total-price').textContent = `₱${Number(active.total || 0).toFixed(2)}`;
+      } else if (bannerEl) {
+        bannerEl.style.display = 'none';
+      }
+
+      renderQueueCards();
+    } catch (err) {
+      console.warn('Queue dashboard load failed:', err);
+    }
+  }
+
+  function renderQueueCards() {
+    const container = document.getElementById('queue-orders-container');
+    if (!container) return;
+
+    let list = queueOrdersData;
+    if (currentStageFilter !== 'all') {
+      list = list.filter(o => {
+        if (currentStageFilter === 'pending') return ['pending', 'accepted'].includes(o.status);
+        if (currentStageFilter === 'preparing') return o.status === 'preparing';
+        if (currentStageFilter === 'ready') return ['ready', 'ready_pickup', 'ready_delivery'].includes(o.status);
+        if (currentStageFilter === 'completed') return ['completed', 'delivered'].includes(o.status);
+        return true;
+      });
+    }
+
+    if (currentSearchQuery) {
+      const q = currentSearchQuery.toLowerCase();
+      list = list.filter(o =>
+        (o.customer_name && o.customer_name.toLowerCase().includes(q)) ||
+        (o.order_number && o.order_number.toLowerCase().includes(q)) ||
+        String(o.queue_number).includes(q)
+      );
+    }
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state-card">
+          <div style="font-weight: 700; color: #fff;">No Orders In This Stage</div>
+          <div style="font-size: 13px; margin-top: 4px;">Orders will appear here as they are queued.</div>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = list.map(order => `
+      <div class="order-card" onclick="openOrderModalById('${order.id}')">
+        <div class="order-card-head">
+          <span class="order-ticket">#${order.queue_number || order.id}</span>
+          <span class="status-badge ${getStatusBadgeClass(order.status)}">${order.status}</span>
+        </div>
+        <div class="order-cust-name">${order.customer_name || 'Walk-in'}</div>
+        <div class="order-items-snippet">
+          ${(order.items || []).map(i => `${i.quantity}x ${i.product_name || i.name || 'Siomai'}`).join(', ')}
+        </div>
+        <div class="order-card-foot" onclick="event.stopPropagation()">
+          <span class="order-total-price">₱${Number(order.total || 0).toFixed(2)}</span>
+          <div>
+            ${order.status === 'pending' ? `
+              <button class="btn btn-secondary" onclick="updateOrderStatusAction('${order.id}', 'preparing')">Prepare</button>
+            ` : order.status === 'preparing' ? `
+              <button class="btn btn-secondary" onclick="updateOrderStatusAction('${order.id}', 'ready_pickup')">Ready</button>
+            ` : ['ready', 'ready_pickup'].includes(order.status) ? `
+              <button class="btn btn-success" onclick="updateOrderStatusAction('${order.id}', 'completed')">Done</button>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function getStatusBadgeClass(status) {
+    if (status === 'pending') return 'yellow';
+    if (['accepted', 'preparing'].includes(status)) return 'orange';
+    if (['ready', 'ready_pickup', 'ready_delivery'].includes(status)) return 'green';
+    if (['completed', 'delivered'].includes(status)) return 'gray';
+    if (status === 'cancelled') return 'red';
+    return 'blue';
+  }
+
+  function filterQueue(stage, btn) {
+    currentStageFilter = stage;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderQueueCards();
+  }
+
+  function handleQueueSearch(val) {
+    currentSearchQuery = val;
+    renderQueueCards();
+  }
+
+  async function updateOrderStatusAction(orderId, nextStatus) {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || errData.message || `Failed with HTTP ${res.status}`);
+      }
+      if (window.showToast) window.showToast('success', 'Updated', `Order marked as ${nextStatus}`);
+      loadQueueDashboardData();
+      return true;
+    } catch (e) {
+      if (window.showToast) window.showToast('error', 'Error', e.message);
+      return false;
+    }
+  }
+
+  async function resetQueueCounter() {
+    if (window.Swal) {
+      const res = await window.Swal.fire({
+        title: 'Reset Daily Queue?',
+        text: 'Are you sure you want to reset the daily queue counter back to #0? This cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Reset Queue',
+        cancelButtonText: 'Cancel'
+      });
+      if (!res.isConfirmed) return;
+    } else if (!confirm('Reset daily queue number back to #0?')) {
+      return;
+    }
+
+    try {
+      if (window.Swal) {
+        window.Swal.fire({
+          title: 'Resetting Queue...',
+          text: 'Updating daily counter...',
+          allowOutsideClick: false,
+          didOpen: () => window.Swal.showLoading()
+        });
+      }
+      await fetch('/api/queue/reset', { method: 'POST' });
+      if (window.Swal) {
+        window.Swal.fire({
+          icon: 'success',
+          title: 'Queue Reset',
+          text: 'Daily queue counter has been reset to #0.',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } else if (window.showToast) {
+        window.showToast('success', 'Queue Reset', 'Counter set to #0');
+      }
+      loadQueueDashboardData();
+    } catch (e) {
+      if (window.Swal) {
+        window.Swal.fire({ icon: 'error', title: 'Reset Failed', text: e.message });
+      } else if (window.showToast) {
+        window.showToast('error', 'Error', e.message);
+      }
+    }
+  }
+
+  function callNextCustomer() {
+    if (window.showToast) window.showToast('info', 'Calling Customer', 'Buzzing next order ticket...');
+  }
+
+  function buzzActiveCustomer() {
+    if (window.showToast) window.showToast('info', 'Customer Alerted', 'Buzzer chime triggered for current ticket.');
+  }
+
+  async function completeActiveOrder() {
+    const active = queueOrdersData[0];
+    if (active) {
+      await updateOrderStatusAction(active.id, 'completed');
+    }
+  }
+
+  window.loadQueueDashboardData = loadQueueDashboardData;
+</script>

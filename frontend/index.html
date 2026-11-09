@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="KEVS Siomai Integrated Order Management System - Admin Dashboard" />
+  <meta name="theme-color" content="#171717" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=12" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <title>HOTSPOT Siomai Admin</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- App Stylesheet (Pure CSS, No build tool required) -->
+  <link rel="stylesheet" href="/assets/style.css?v=12" />
+
+  <script>
+    // Register Service Worker for PWA (Offline Support)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('[SW] Registered:', reg.scope))
+          .catch(err => console.warn('[SW] Registration failed:', err));
+      });
+    }
+  </script>
+</head>
+<body class="light-theme">
+  <!-- Single Page Application Mount Point -->
+  <div id="app"></div>
+
+  <!-- External Libraries: SweetAlert2 (Popups & Dialogs), Socket.IO (Real-time), Chart.js (Analytics) -->
+  <script src="/assets/sweetalert2.all.min.js"></script>
+  <script>
+    if (!window.Swal) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"><\/script>');
+    }
+  </script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <!-- Main Vanilla JS Application (No JSX, No React) -->
+  <script type="module" src="/assets/app.js?v=16"></script>
+</body>
+</html>

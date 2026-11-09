@@ -1,0 +1,255 @@
+<!-- 
+  ==============================================================================
+  HARDWARE SIMULATOR COMPONENT (HTML + CSS + JS)
+  ==============================================================================
+  Self-contained HTML component: includes markup, <style>, and <script>.
+-->
+
+<div id="hardware-simulator-component" class="sim-page">
+  <!-- Header -->
+  <div class="sim-header">
+    <div>
+      <h1 class="sim-title">Hardware Simulator</h1>
+    </div>
+    <button id="sim-wifi-toggle-btn" class="btn btn-secondary" onclick="toggleSimWifi()">
+      WiFi: Connected
+    </button>
+  </div>
+
+  <div class="sim-grid">
+    <!-- Virtual OLED Module Card -->
+    <div class="sim-card">
+      <div class="sim-card-header">
+        <h3 class="sim-card-title">OLED Queue Display</h3>
+        <span class="status-badge green" id="sim-oled-status-badge">ESP32 Online</span>
+      </div>
+
+      <!-- Monochrome Green OLED Screen Display -->
+      <div class="virtual-oled-box">
+        <div class="oled-title-text">=== KEVS SIOMAI QUEUE ===</div>
+        <div class="oled-divider-line">━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+        <div class="oled-numbers-row">
+          <div>
+            <div class="oled-micro-label">NOW SERVING</div>
+            <div class="oled-big-num" id="oled-screen-now">#12</div>
+          </div>
+          <div class="oled-vertical-bar"></div>
+          <div>
+            <div class="oled-micro-label">NEXT QUEUE</div>
+            <div class="oled-big-num" id="oled-screen-next">#13</div>
+          </div>
+        </div>
+        <div class="oled-status-text" id="oled-screen-status">PLEASE PROCEED TO COUNTER</div>
+      </div>
+
+      <!-- Physical Simulator Buttons -->
+      <div class="sim-btn-row">
+        <button class="btn btn-primary sim-action-btn" onclick="pressEsp32PushButton()">
+          Call Next
+        </button>
+        <button class="btn btn-secondary sim-action-btn" onclick="triggerPiezoTone()">
+          Test Buzzer
+        </button>
+      </div>
+    </div>
+
+    <!-- ESP32 Serial Monitor Console Card -->
+    <div class="sim-card">
+      <div class="sim-card-header">
+        <h3 class="sim-card-title">Serial Monitor</h3>
+        <button class="clear-btn" onclick="clearSimConsole()">Clear</button>
+      </div>
+
+      <div class="serial-console-terminal" id="sim-console-terminal">
+        <div class="log-dim">[00:00:00] [BOOT] ESP32-WROOM-32 booting firmware...</div>
+        <div class="log-dim">[00:00:01] [I2C] SSD1306 OLED screen found at 0x3C</div>
+        <div class="log-dim">[00:00:01] [WIFI] Connected to AP (SSID: Kevs_WiFi_POS)</div>
+        <div class="log-green">[00:00:02] [SYSTEM] Ready. Polling Flask backend /api/queue/display</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .sim-page {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .sim-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .sim-title { font-size: 24px; font-weight: 800; color: #fff; margin: 0; }
+  .sim-subtitle { font-size: 14px; color: #94a3b8; margin-top: 2px; }
+
+  .sim-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+  }
+  .sim-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.3);
+  }
+  .sim-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .sim-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+  }
+  .clear-btn {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .clear-btn:hover { color: #fff; }
+
+  .virtual-oled-box {
+    background: #000000;
+    border: 2px solid #475569;
+    border-radius: 16px;
+    padding: 20px;
+    font-family: 'Courier New', monospace;
+    color: #4ade80;
+    text-align: center;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+    margin-bottom: 20px;
+  }
+  .oled-title-text { font-size: 13px; letter-spacing: 2px; opacity: 0.85; }
+  .oled-divider-line { font-size: 11px; color: #16a34a; margin: 4px 0; }
+  .oled-numbers-row {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin: 14px 0;
+  }
+  .oled-micro-label { font-size: 10px; opacity: 0.7; }
+  .oled-big-num { font-size: 34px; font-weight: bold; color: #4ade80; }
+  .oled-vertical-bar { width: 1px; height: 40px; background: #166534; }
+  .oled-status-text { font-size: 11px; letter-spacing: 1px; color: #86efac; }
+
+  .sim-btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .sim-action-btn {
+    flex: 1;
+    min-width: 140px;
+    justify-content: center;
+    padding: 10px;
+  }
+
+  .serial-console-terminal {
+    background: #000000;
+    border-radius: 14px;
+    padding: 14px;
+    height: 230px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .log-dim   { color: #64748b; }
+  .log-green { color: #4ade80; }
+  .log-yellow{ color: #facc15; }
+  .log-blue  { color: #38bdf8; }
+  .log-red   { color: #f87171; }
+</style>
+
+<script>
+  let simWifiOn = true;
+  let oledServingTicket = 12;
+
+  function toggleSimWifi() {
+    simWifiOn = !simWifiOn;
+    const btn = document.getElementById('sim-wifi-toggle-btn');
+    const badge = document.getElementById('sim-oled-status-badge');
+
+    if (btn) {
+      btn.textContent = simWifiOn ? 'WiFi: Connected' : 'WiFi: Disconnected';
+    }
+    if (badge) {
+      badge.textContent = simWifiOn ? 'ESP32 Online' : 'No Signal';
+      badge.className = simWifiOn ? 'status-badge green' : 'status-badge red';
+    }
+
+    appendSimLog(simWifiOn ? '[WIFI] Re-associated with AP (IP: 192.168.1.105)' : '[WIFI] Disconnected from AP. Retrying...', simWifiOn ? 'log-green' : 'log-red');
+  }
+
+  function triggerPiezoTone() {
+    playSimTone(1000, 250);
+    appendSimLog('[BUZZER] Piezo active: Frequency 1000Hz, Duration 250ms', 'log-yellow');
+    if (window.showToast) window.showToast('info', 'Buzzer', 'Piezo buzzer sound emitted');
+  }
+
+  function pressEsp32PushButton() {
+    if (!simWifiOn) {
+      appendSimLog('[ERROR] Pin 14 pressed but WiFi connection is down!', 'log-red');
+      if (window.showToast) window.showToast('error', 'WiFi Offline', 'ESP32 cannot reach the server');
+      return;
+    }
+
+    playSimTone(1200, 200);
+    oledServingTicket += 1;
+
+    document.getElementById('oled-screen-now').textContent = `#${oledServingTicket}`;
+    document.getElementById('oled-screen-next').textContent = `#${oledServingTicket + 1}`;
+
+    appendSimLog('[GPIO] Button pin 14 active LOW (Interrupt triggered)', 'log-blue');
+    appendSimLog(`[HTTP] GET /api/queue/display -> Now Serving #${oledServingTicket}`, 'log-green');
+    appendSimLog('[OLED] SSD1306 display frame buffer refreshed', 'log-dim');
+
+    if (window.showToast) window.showToast('success', 'Hardware Event', `ESP32 called ticket #${oledServingTicket}`);
+  }
+
+  function playSimTone(freq, durMs) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + durMs / 1000);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + durMs / 1000);
+    } catch (e) {}
+  }
+
+  function appendSimLog(msg, colorClass = 'log-green') {
+    const box = document.getElementById('sim-console-terminal');
+    if (!box) return;
+    const time = new Date().toLocaleTimeString();
+    const line = document.createElement('div');
+    line.className = colorClass;
+    line.textContent = `[${time}] ${msg}`;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function clearSimConsole() {
+    const box = document.getElementById('sim-console-terminal');
+    if (box) box.innerHTML = '<div class="log-dim">[00:00:00] Console cleared.</div>';
+  }
+</script>

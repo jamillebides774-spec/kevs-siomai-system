@@ -1,0 +1,109 @@
+<!-- 
+  ==============================================================================
+  TOAST NOTIFICATION COMPONENT (HTML + CSS + JS)
+  ==============================================================================
+  Self-contained HTML component: includes markup, <style>, and <script>.
+-->
+
+<div id="toast-container" class="toast-container"></div>
+
+<style>
+  .toast-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .toast-item {
+    width: 320px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-left-width: 4px;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #f1f5f9;
+    pointer-events: auto;
+    transition: all 0.3s ease;
+    animation: toastSlideIn 0.3s ease;
+  }
+  .toast-success { border-left-color: #10b981; }
+  .toast-error   { border-left-color: #ef4444; }
+  .toast-warning { border-left-color: #eab308; }
+  .toast-info    { border-left-color: #3b82f6; }
+
+  .toast-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
+  .toast-content { flex: 1; min-width: 0; }
+  .toast-title { font-weight: 700; font-size: 14px; line-height: 1.2; }
+  .toast-msg { font-size: 12px; color: #94a3b8; margin-top: 3px; line-height: 1.4; }
+  .toast-close {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+  }
+  .toast-close:hover { color: #f1f5f9; }
+
+  @keyframes toastSlideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+  }
+</style>
+
+<script>
+  function showToast(type = 'info', title = '', message = '') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toast-container';
+      container.className = 'toast-container';
+      document.body.appendChild(container);
+    }
+
+    const icons = {
+      success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>',
+      error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+      warning: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+      info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `toast-item toast-${type}`;
+    toast.innerHTML = `
+      <span class="toast-icon">${icons[type] || ''}</span>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        ${message ? `<div class="toast-msg">${message}</div>` : ''}
+      </div>
+      <button class="toast-close">&times;</button>
+    `;
+
+    toast.querySelector('.toast-close').addEventListener('click', () => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(100%)';
+      setTimeout(() => toast.remove(), 250);
+    });
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(100%)';
+      setTimeout(() => toast.remove(), 250);
+    }, 4000);
+  }
+
+  // Expose globally
+  window.showToast = showToast;
+</script>

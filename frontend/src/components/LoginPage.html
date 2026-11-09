@@ -1,0 +1,253 @@
+<!-- 
+  ==============================================================================
+  LOGIN PAGE COMPONENT (HTML + CSS + JS)
+  ==============================================================================
+  Self-contained HTML component: includes markup, <style>, and <script>.
+-->
+
+<div id="login-component" class="login-wrapper">
+  <!-- Glowing Background Orbs -->
+  <div class="login-orb orb-top"></div>
+  <div class="login-orb orb-bottom"></div>
+
+  <div class="login-card-box">
+    <!-- Header -->
+    <div class="login-header">
+      <div style="display:flex;justify-content:center;margin-bottom:8px;">
+        <img src="/images/brand_logo.png" alt="HOTSPOT Siomai" style="width: 64px; height: 64px; border-radius: 50%;" />
+      </div>
+      <h1 class="login-title"><span style="color:#ef4444;text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff;">HOTSPOT</span> <span style="font-family:'Brush Script MT',cursive;color:#ffffff;">Siomai</span></h1>
+      <p class="login-sub">STA. CRUZ FAMOUS SIOMAI</p>
+    </div>
+
+    <!-- Error message alert -->
+    <div id="login-alert-box" class="login-error-banner" style="display: none;"></div>
+
+    <!-- Login Form -->
+    <form id="login-form-element" onsubmit="handleLoginSubmit(event)" class="login-form">
+      <div class="form-group">
+        <label for="login-user" class="form-label">Username</label>
+        <input type="text" id="login-user" class="form-input" value="admin" placeholder="admin" required />
+      </div>
+
+      <div class="form-group">
+        <label for="login-pass" class="form-label">Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="login-pass" class="form-input" value="kevs2024" placeholder="••••••••" required />
+          <button type="button" class="pw-eye-btn" onclick="togglePasswordVisibility()">Show</button>
+        </div>
+      </div>
+
+      <button type="submit" id="login-submit-btn" class="login-btn">
+        Sign In
+      </button>
+    </form>
+
+    <div class="login-footer">
+      Default credentials: <span class="cred-highlight">admin</span> / <span class="cred-highlight">kevs2024</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  .login-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: #0f172a;
+    font-family: 'Inter', system-ui, sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+  .login-orb {
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+  }
+  .orb-top {
+    top: -120px;
+    right: -120px;
+    background: rgba(249, 115, 22, 0.12);
+  }
+  .orb-bottom {
+    bottom: -120px;
+    left: -120px;
+    background: rgba(234, 88, 12, 0.12);
+  }
+  .login-card-box {
+    width: 100%;
+    max-width: 420px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    position: relative;
+    z-index: 10;
+  }
+  .login-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .login-brand-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 16px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #f97316, #c2540a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    box-shadow: 0 10px 25px rgba(249, 115, 22, 0.35);
+  }
+  .login-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0;
+  }
+  .login-sub {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-top: 4px;
+  }
+  .login-error-banner {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #cbd5e1;
+  }
+  .form-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: #0f172a;
+    border: 1px solid #475569;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: #ffffff;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .form-input:focus {
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+  }
+  .password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .password-wrapper .form-input {
+    padding-right: 40px;
+  }
+  .pw-eye-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #94a3b8;
+  }
+  .login-btn {
+    width: 100%;
+    background: #f97316;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+    margin-top: 8px;
+    transition: all 0.2s;
+  }
+  .login-btn:hover { background: #ea580c; }
+  .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .login-footer {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #334155;
+    text-align: center;
+    font-size: 12px;
+    color: #64748b;
+  }
+  .cred-highlight {
+    color: #fb923c;
+    font-weight: 700;
+    font-family: monospace;
+  }
+</style>
+
+<script>
+  let isPasswordShown = false;
+
+  function togglePasswordVisibility() {
+    isPasswordShown = !isPasswordShown;
+    const input = document.getElementById('login-pass');
+    if (input) input.type = isPasswordShown ? 'text' : 'password';
+  }
+
+  async function handleLoginSubmit(event) {
+    event.preventDefault();
+    const alertBox = document.getElementById('login-alert-box');
+    const submitBtn = document.getElementById('login-submit-btn');
+    const userField = document.getElementById('login-user');
+    const passField = document.getElementById('login-pass');
+
+    alertBox.style.display = 'none';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Signing in...';
+
+    const username = userField.value.trim();
+    const password = passField.value;
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Invalid credentials');
+      }
+
+      localStorage.setItem('kevs_user', JSON.stringify(data.user));
+      if (window.showToast) window.showToast('success', 'Welcome!', `Signed in as ${data.user.full_name}`);
+      window.location.reload();
+    } catch (err) {
+      alertBox.textContent = err.message || 'Login failed';
+      alertBox.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sign In';
+    }
+  }
+</script>

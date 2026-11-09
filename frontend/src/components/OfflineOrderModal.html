@@ -1,0 +1,406 @@
+<!-- 
+  ==============================================================================
+  NEW WALK-IN & OFFLINE ORDER MODAL COMPONENT (HTML + CSS + JS)
+  ==============================================================================
+  Self-contained HTML component: includes markup, <style>, and <script>.
+-->
+
+<div id="new-order-modal-wrapper" class="modal-overlay" style="display: none;">
+  <div class="modal-dialog-box">
+    <!-- Header -->
+    <div class="modal-head">
+      <div>
+        <h2 class="modal-title">Create Walk-in Order</h2>
+      </div>
+      <button class="modal-close-cross" onclick="closeNewOrderModal()">&times;</button>
+    </div>
+
+    <!-- Customer & Payment inputs -->
+    <div class="modal-form-body">
+      <div class="form-group">
+        <label class="form-label">Customer Name</label>
+        <input type="text" id="nom-cust-name" class="form-input" value="Walk-in Customer" />
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Order Type</label>
+          <select id="nom-order-type" class="form-input">
+            <option value="takeout" selected>Takeout / Pickup</option>
+            <option value="dine-in">Dine-in</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Payment Method</label>
+          <select id="nom-payment-method" class="form-input">
+            <option value="Cash" selected>Cash</option>
+            <option value="GCash">GCash QR</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Items Selector -->
+      <div class="form-group">
+        <label class="form-label">Select Items & Quantities</label>
+        <div class="menu-items-picker" id="nom-items-container">
+          <!-- Rendered dynamically from database -->
+        </div>
+      </div>
+
+      <!-- Running Total & Submit -->
+      <div class="order-summary-box">
+        <div>
+          <div class="summary-label">Order Total</div>
+          <div class="summary-price" id="nom-running-total">₱0.00</div>
+        </div>
+        <button class="btn btn-primary submit-order-btn" onclick="submitWalkinOrder()">
+          Place Order
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .modal-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+  .modal-form-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .menu-items-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .menu-item-row {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .item-meta-name { font-weight: 700; font-size: 13px; color: #fff; }
+  .item-meta-price { font-size: 12px; font-weight: 700; color: #fb923c; margin-top: 2px; }
+  .qty-counter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .qty-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .qty-btn:hover { background: #334155; }
+  .qty-display-val {
+    width: 24px;
+    text-align: center;
+    font-weight: 800;
+    font-size: 14px;
+  }
+  .order-summary-box {
+    background: rgba(249, 115, 22, 0.1);
+    border: 1px solid rgba(249, 115, 22, 0.25);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .summary-label { font-size: 11px; color: #94a3b8; }
+  .summary-price { font-size: 22px; font-weight: 800; color: #ffffff; }
+  .submit-order-btn { padding: 12px 24px; font-size: 14px; }
+</style>
+
+<script>
+  let newOrderCart = {};
+  let newOrderProducts = [];
+
+  function isNomSiomai(p) {
+    if (!p) return false;
+    const name = (p.name || '').toLowerCase();
+    const cat = (p.category || '').toLowerCase();
+    return name.includes('siomai') || cat === 'siomai';
+  }
+
+  function getNomAddonType(p) {
+    if (!p) return null;
+    const name = (p.name || '').toLowerCase();
+    if (name.includes('calamansi')) return 'calamansi';
+    if (name.includes('soy')) return 'soy_sauce';
+    if (name.includes('chili') || name.includes('chilli')) return 'chili_garlic';
+    return null;
+  }
+
+  function getNomAddonLimits(totalSiomai) {
+    if (totalSiomai <= 0) {
+      return {
+        calamansi: { max: 0, unit: 'pcs', name: 'Calamansi' },
+        soy_sauce: { max: 0, unit: 'packs', name: 'Soy Sauce' },
+        chili_garlic: { max: 0, unit: 'packs', name: 'Chili Garlic' }
+      };
+    } else if (totalSiomai <= 10) {
+      return {
+        calamansi: { max: 3, unit: 'pcs', name: 'Calamansi' },
+        soy_sauce: { max: 2, unit: 'packs', name: 'Soy Sauce' },
+        chili_garlic: { max: 2, unit: 'packs', name: 'Chili Garlic' }
+      };
+    } else {
+      return {
+        calamansi: { max: 5, unit: 'pcs', name: 'Calamansi' },
+        soy_sauce: { max: 3, unit: 'packs', name: 'Soy Sauce' },
+        chili_garlic: { max: 3, unit: 'packs', name: 'Chili Garlic' }
+      };
+    }
+  }
+
+  function getNomTotalSiomai() {
+    let sum = 0;
+    for (const [pid, qty] of Object.entries(newOrderCart)) {
+      const p = newOrderProducts.find(x => String(x.id) === String(pid));
+      if (p && isNomSiomai(p)) {
+        sum += (qty || 0);
+      }
+    }
+    return sum;
+  }
+
+  function updateNomAddonLimits(isSiomaiDecrease = false) {
+    const totalSiomai = getNomTotalSiomai();
+    const limits = getNomAddonLimits(totalSiomai);
+    const violations = [];
+
+    newOrderProducts.forEach(p => {
+      const addonType = getNomAddonType(p);
+      if (!addonType) return;
+
+      const limit = limits[addonType];
+      const maxAllowed = limit.max;
+      const unit = limit.unit;
+      const currentQty = newOrderCart[p.id] || 0;
+      const stockLimit = typeof p.stock === 'number' ? p.stock : 999;
+      const effectiveCap = Math.min(maxAllowed, stockLimit);
+
+      const badge = document.getElementById(`nom-badge-${p.id}`);
+      if (badge) {
+        badge.textContent = `Max: ${maxAllowed} ${unit}`;
+        badge.style.color = maxAllowed === 0 ? '#f87171' : '#60a5fa';
+        badge.style.borderColor = maxAllowed === 0 ? 'rgba(239,68,68,0.3)' : 'rgba(59,130,246,0.3)';
+      }
+
+      const plusBtn = document.getElementById(`nom-plus-${p.id}`);
+      if (plusBtn) {
+        if (currentQty >= effectiveCap) {
+          plusBtn.disabled = true;
+          plusBtn.style.opacity = '0.4';
+          plusBtn.style.cursor = 'not-allowed';
+        } else {
+          plusBtn.disabled = false;
+          plusBtn.style.opacity = '1';
+          plusBtn.style.cursor = 'pointer';
+        }
+      }
+
+      const warnEl = document.getElementById(`nom-warn-${p.id}`);
+      if (currentQty > maxAllowed) {
+        violations.push({ product: p, qty: currentQty, max: maxAllowed, unit });
+        if (warnEl) {
+          warnEl.style.display = 'block';
+          warnEl.textContent = `⚠️ Max ${maxAllowed} ${unit} for ${totalSiomai} siomai!`;
+        }
+      } else {
+        if (warnEl) warnEl.style.display = 'none';
+      }
+    });
+
+    if (isSiomaiDecrease && violations.length > 0) {
+      if (window.showToast) window.showToast('warning', 'Add-on Limit Exceeded', 'Siomai quantity decreased. Please adjust add-on quantities exceeding the new limits.');
+    }
+
+    return violations;
+  }
+
+  async function openNewOrderModal() {
+    newOrderCart = {};
+    const modal = document.getElementById('new-order-modal-wrapper');
+    const container = document.getElementById('nom-items-container');
+    if (!modal) return;
+
+    try {
+      const res = await fetch('/api/products?all=true').then(r => r.json());
+      newOrderProducts = res.products || [];
+    } catch (e) {
+      newOrderProducts = [
+        { id: 1, name: 'HotSpot Siomai', price: 45, category: 'Siomai' },
+        { id: 5, name: 'Chilli Garlic', price: 0, category: 'Add-ons' },
+        { id: 6, name: 'Soy Sauce', price: 0, category: 'Add-ons' },
+        { id: 7, name: 'Calamansi', price: 0, category: 'Add-ons' }
+      ];
+    }
+
+    container.innerHTML = newOrderProducts.map(p => {
+      const addonType = getNomAddonType(p);
+      return `
+      <div class="menu-item-row" id="nom-item-row-${p.id}">
+        <div>
+          <div class="item-meta-name">
+            ${p.name}
+            ${addonType ? `<span id="nom-badge-${p.id}" style="font-size: 11px; padding: 2px 7px; border-radius: 9999px; font-weight: 700; margin-left: 6px; border: 1px solid rgba(59,130,246,0.3); color: #60a5fa; background: rgba(59,130,246,0.12);">Max: 0 pcs</span>` : ''}
+          </div>
+          <div class="item-meta-price">₱${Number(p.price).toFixed(2)}</div>
+          ${addonType ? `<div id="nom-warn-${p.id}" style="display: none; font-size: 11px; color: #f87171; font-weight: bold; margin-top: 2px;"></div>` : ''}
+        </div>
+        <div class="qty-counter-row">
+          <button class="qty-btn" onclick="changeNewOrderQty('${p.id}', -1)">-</button>
+          <span class="qty-display-val" id="nom-qty-${p.id}">0</span>
+          <button class="qty-btn" id="nom-plus-${p.id}" onclick="changeNewOrderQty('${p.id}', 1)">+</button>
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    updateNewOrderTotal();
+    updateNomAddonLimits(false);
+    modal.style.display = 'flex';
+  }
+
+  function closeNewOrderModal() {
+    const modal = document.getElementById('new-order-modal-wrapper');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function changeNewOrderQty(pid, delta) {
+    const p = newOrderProducts.find(x => String(x.id) === String(pid));
+    if (!p) return;
+
+    const current = newOrderCart[pid] || 0;
+    const addonType = getNomAddonType(p);
+    const isSiomai = isNomSiomai(p);
+
+    if (delta > 0 && addonType) {
+      const totalSiomai = getNomTotalSiomai();
+      const limits = getNomAddonLimits(totalSiomai);
+      const maxAllowed = limits[addonType].max;
+      if (current >= maxAllowed) {
+        if (window.showToast) window.showToast('warning', 'Limit Reached', `Maximum ${maxAllowed} ${limits[addonType].unit} allowed for ${totalSiomai} Siomai.`);
+        return;
+      }
+    }
+
+    const nextQty = Math.max(0, current + delta);
+    newOrderCart[pid] = nextQty;
+    const countEl = document.getElementById(`nom-qty-${pid}`);
+    if (countEl) countEl.textContent = newOrderCart[pid];
+    updateNewOrderTotal();
+
+    const isSiomaiDecrease = isSiomai && delta < 0;
+    updateNomAddonLimits(isSiomaiDecrease);
+  }
+
+  function updateNewOrderTotal() {
+    let total = 0;
+    for (const [pid, qty] of Object.entries(newOrderCart)) {
+      const p = newOrderProducts.find(x => String(x.id) === String(pid));
+      if (p) total += p.price * qty;
+    }
+    const totalEl = document.getElementById('nom-running-total');
+    if (totalEl) totalEl.textContent = `₱${total.toFixed(2)}`;
+  }
+
+  async function submitWalkinOrder() {
+    const items = [];
+    let total = 0;
+
+    for (const [pid, qty] of Object.entries(newOrderCart)) {
+      if (qty > 0) {
+        const p = newOrderProducts.find(x => String(x.id) === String(pid));
+        if (p) {
+          items.push({
+            product_id: p.id,
+            product_name: p.name,
+            quantity: qty,
+            price: p.price,
+            subtotal: p.price * qty
+          });
+          total += p.price * qty;
+        }
+      }
+    }
+
+    if (items.length === 0) {
+      if (window.showToast) window.showToast('warning', 'Empty Cart', 'Select at least 1 siomai item');
+      return;
+    }
+
+    // Validate add-on restrictions before checkout
+    const violations = updateNomAddonLimits(false);
+    if (violations && violations.length > 0) {
+      const totalSiomai = getNomTotalSiomai();
+      const msg = violations.map(v => `${v.product.name}: ${v.qty} ${v.unit} (Max: ${v.max} ${v.unit})`).join(', ');
+      if (window.Swal) {
+        window.Swal.fire({
+          icon: 'warning',
+          title: 'Adjust Add-on Quantities',
+          text: `Your add-on quantities exceed the allowed limit for ${totalSiomai} HotSpot Siomai: ${msg}. Please adjust before ordering.`,
+          confirmButtonColor: '#f97316'
+        });
+      } else if (window.showToast) {
+        window.showToast('warning', 'Add-on Limit Exceeded', `Add-ons exceed limit: ${msg}`);
+      }
+      return;
+    }
+
+    const custName = document.getElementById('nom-cust-name').value.trim() || 'Walk-in Customer';
+    const orderType = document.getElementById('nom-order-type').value;
+    const payment = document.getElementById('nom-payment-method').value;
+
+    const payload = {
+      type: 'walk-in',
+      order_type: orderType,
+      customer_name: custName,
+      customer_phone: '',
+      items,
+      total,
+      payment_method: payment,
+      payment_status: payment === 'Cash' ? 'confirmed' : 'pending'
+    };
+
+    closeNewOrderModal();
+
+    try {
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (window.showToast) window.showToast('success', 'Order Placed!', `Ticket added to queue for ${custName}`);
+      if (typeof loadQueueDashboardData === 'function') loadQueueDashboardData();
+    } catch (e) {
+      if (window.showToast) window.showToast('error', 'Order Failed', e.message);
+    }
+  }
+
+  window.openNewOrderModal = openNewOrderModal;
+  window.closeNewOrderModal = closeNewOrderModal;
+</script>
