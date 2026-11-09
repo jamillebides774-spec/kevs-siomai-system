@@ -27,7 +27,31 @@ class OfflineService {
 
   // Default backend URL: origin on Web, saved URL on mobile, fallback to Render production
   static Future<String> getBaseUrl() async {
-    // 1. User manual override (saved via Settings screen) takes top priority
+    // 1. Web PWA / Browser environment:
+    if (kIsWeb) {
+      try {
+        final origin = Uri.base.origin;
+        // On HTTPS (Render production / cloud domain):
+        // Browser Mixed Content security blocks http:// calls, so we MUST use the current origin!
+        if (origin.startsWith('https') || Uri.base.host.contains('onrender.com')) {
+          return '$origin/api';
+        }
+
+        // If local dev under separate Flutter web port (e.g. 8080, 5173):
+        final port = Uri.base.port;
+        if (port != 5000 && port != 80 && port != 443 && port != 0) {
+          final host = Uri.base.host;
+          final targetHost = (host.isNotEmpty && host != '0.0.0.0') ? host : 'localhost';
+          return 'http://$targetHost:5000/api';
+        }
+
+        if (origin.isNotEmpty && origin.startsWith('http')) {
+          return '$origin/api';
+        }
+      } catch (_) {}
+    }
+
+    // 2. User manual override (saved via Settings screen on Native Mobile APK)
     try {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString(_keyBackendUrl);
@@ -36,35 +60,7 @@ class OfflineService {
       }
     } catch (_) {}
 
-    // 2. Web PWA / Browser environment:
-    if (kIsWeb) {
-      try {
-        final port = Uri.base.port;
-        final host = Uri.base.host;
-        // If running under Flutter web dev server (e.g. port 8080, 3000, etc.),
-        // the backend Flask server is running on port 5000 on the same host:
-        if (port != 5000 && port != 80 && port != 443) {
-          final targetHost = (host.isNotEmpty && host != '0.0.0.0') ? host : 'localhost';
-          return 'http://$targetHost:5000/api';
-        }
-        // If served from Flask (:5000) or production reverse proxy (:80/:443 like Render)
-        if (Uri.base.origin.isNotEmpty && Uri.base.origin.startsWith('http')) {
-          return '${Uri.base.origin}/api';
-        }
-      } catch (_) {}
-    }
-
-    // 3. Native mobile app (Android / iOS) or local fallback
-    try {
-      final host = Uri.base.host;
-      if (host.isNotEmpty && host != '0.0.0.0' && host != 'localhost') {
-        return 'http://$host:5000/api';
-      }
-      if (host == 'localhost') {
-        return 'http://localhost:5000/api';
-      }
-    } catch (_) {}
-
+    // 3. Native mobile app (Android / iOS) default fallback
     return 'https://kevs-siomai.onrender.com/api';
   }
 

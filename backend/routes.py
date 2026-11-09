@@ -910,17 +910,20 @@ def queue_display():
         Product.stock <= (Product.max_stock * 0.20)
     ).all()
 
-    latest_order = active_orders[0] if active_orders else None
+    # Track latest issued order ticket even when completed
+    latest_order = Order.query.order_by(Order.id.desc()).first()
+    completed_count = Order.query.filter(Order.status.in_(['completed', 'delivered'])).count()
 
     return jsonify({
-        'now_serving': queue.now_serving if active_orders else 0,
+        'now_serving': queue.now_serving,
         'next_queue': queue.current_queue_no,
-        'now_serving_status': now_serving_order.status if now_serving_order else 'idle',
+        'now_serving_status': now_serving_order.status if now_serving_order else ('idle' if not active_orders else 'serving'),
         'now_serving_customer': (now_serving_order.customer_name or 'Guest')[:14] if now_serving_order else '-',
         'active_count': len(active_orders),
         'pending_count': pending_count,
         'preparing_count': preparing_count,
         'ready_count': ready_count,
+        'completed_count': completed_count,
         'latest_ticket': latest_order.queue_no if latest_order else 0,
         'latest_customer': (latest_order.customer_name or 'Guest')[:12] if latest_order else '-',
         'latest_total': float(latest_order.total_amount) if latest_order else 0.0,
