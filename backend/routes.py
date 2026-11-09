@@ -411,10 +411,12 @@ def _emit_review_event(event_name, data):
 def _decrease_inventory(order):
     """Decrease product stock for each item in an order."""
     alerts = []
+    updated_products = []
     for item in order.items:
         product = Product.query.get(item.product_id)
         if product:
             product.stock = max(0, product.stock - item.quantity)
+            updated_products.append(product)
             if product.stock_status in ('critical', 'out_of_stock'):
                 alerts.append({
                     'product': product.name,
@@ -429,17 +431,39 @@ def _decrease_inventory(order):
                     'status': product.stock_status,
                     'message': f"🟡 {product.name} stock is low: {product.stock} remaining."
                 })
+            try:
+                from firebase_client import sync_product_to_firestore
+                sync_product_to_firestore(product.to_dict())
+            except Exception:
+                pass
     db.session.commit()
+    try:
+        from app import socketio
+        all_prods = [p.to_dict() for p in Product.query.order_by(Product.id.asc()).all()]
+        socketio.emit('inventory_updated', {'products': all_prods})
+    except Exception:
+        pass
     return alerts
 
 def _restore_inventory(order):
-    """Restore product stock when an in-production order is cancelled."""
+    """Restore product stock when an order is cancelled."""
     try:
         for item in order.items:
             product = Product.query.get(item.product_id)
             if product:
                 product.stock = min(product.max_stock, product.stock + item.quantity)
+                try:
+                    from firebase_client import sync_product_to_firestore
+                    sync_product_to_firestore(product.to_dict())
+                except Exception:
+                    pass
         db.session.commit()
+        try:
+            from app import socketio
+            all_prods = [p.to_dict() for p in Product.query.order_by(Product.id.asc()).all()]
+            socketio.emit('inventory_updated', {'products': all_prods})
+        except Exception:
+            pass
     except Exception as e:
         db.session.rollback()
         print(f"[Restore Inventory Error]: {e}", flush=True)
@@ -792,6 +816,7 @@ def queue_add():
         db.session.add(item)
 
     db.session.commit()
+    _decrease_inventory(new_order)
     print(f"[NEW WALK-IN ORDER] Ticket #{new_order.queue_no} | {new_order.customer_name} | PHP {new_order.total_amount:.2f} ({new_order.payment_method})", flush=True)
     _emit_queue_update(socketio, new_order)
 
@@ -1399,6 +1424,7 @@ def create_order():
             item.order_id = new_order.id
             db.session.add(item)
         db.session.commit()
+        _decrease_inventory(new_order)
         print(f"[NEW MOBILE ORDER] Ticket #{new_order.queue_no} | {new_order.customer_name} ({new_order.order_type}) | PHP {new_order.total_amount:.2f} ({new_order.payment_method})", flush=True)
         _emit_queue_update(socketio, new_order)
         return jsonify({'message': 'Order placed', 'order': new_order.to_dict(), 'queue': queue.to_dict()}), 201
@@ -1481,13 +1507,9 @@ def _process_update_order(order_identifier):
         order.status = new_status
         order.updated_at = datetime.now(timezone.utc)
 
-        # Decrease inventory when order moves from pending/accepted into production
-        if old_status in ('pending', 'accepted') and new_status in ('preparing', 'ready_pickup', 'completed'):
-            stock_alerts = _decrease_inventory(order)
-
         # Restore inventory, release confirmed online account capacity (if any), and delete sale if order is cancelled
         if new_status == 'cancelled':
-            if old_status in ('preparing', 'ready_pickup', 'ready_delivery', 'out_for_delivery', 'ready', 'completed'):
+            if old_status != 'cancelled':
                 _restore_inventory(order)
             if str(order.payment_status or '').lower() in ('confirmed', 'paid') and order.payment_confirmed_at is not None and order.payment_account_id:
                 acct = _find_payment_account(order.payment_account_id)

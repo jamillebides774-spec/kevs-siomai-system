@@ -72,9 +72,12 @@ class GCashQRDialog extends StatefulWidget {
       height: height,
       fit: BoxFit.contain,
       errorBuilder: (ctx, err, stack) {
+        final origin = Uri.base.origin.isNotEmpty && Uri.base.origin.startsWith('http')
+            ? Uri.base.origin
+            : 'https://kevs-siomai.onrender.com';
         final netUrl = trimmed.startsWith('http')
             ? trimmed
-            : 'http://localhost:5000${trimmed.startsWith('/') ? trimmed : '/$trimmed'}';
+            : '$origin${trimmed.startsWith('/') ? trimmed : '/$trimmed'}';
         return Image.network(
           netUrl,
           width: double.infinity,

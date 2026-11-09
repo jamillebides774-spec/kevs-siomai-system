@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product.dart';
 import '../models/order.dart';
@@ -24,18 +25,20 @@ class OfflineService {
     await prefs.setBool(_keyThemeMode, isDark);
   }
 
-  // Default backend URL: 10.0.2.2 works on Android emulator, localhost on Desktop/Web
+  // Default backend URL: origin on Web, saved URL on mobile, fallback to Render production
   static Future<String> getBaseUrl() async {
+    // 1. Web PWA / Browser: Always use current origin directly
+    if (kIsWeb) {
+      try {
+        if (Uri.base.origin.isNotEmpty && Uri.base.origin.startsWith('http')) {
+          return '${Uri.base.origin}/api';
+        }
+      } catch (_) {}
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(_keyBackendUrl);
     if (saved != null && saved.isNotEmpty) return saved;
-
-    // Smart default: If opened in a browser/phone (Web PWA / Render), use current origin directly
-    try {
-      if (Uri.base.origin.isNotEmpty && Uri.base.origin.startsWith('http')) {
-        return '${Uri.base.origin}/api';
-      }
-    } catch (_) {}
 
     final host = Uri.base.host;
     if (host.isNotEmpty && host != '0.0.0.0' && host != 'localhost') {
@@ -44,7 +47,7 @@ class OfflineService {
     if (host == 'localhost') {
       return 'http://localhost:5000/api';
     }
-    return 'http://192.168.123.39:5000/api';
+    return 'https://kevs-siomai.onrender.com/api';
   }
 
   static Future<void> setBaseUrl(String url) async {

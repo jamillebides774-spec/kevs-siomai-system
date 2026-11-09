@@ -557,7 +557,7 @@ def _process_firestore_doc(app, socketio, data, doc_id=None, admin_doc=None):
             pos_id = data.get('id') or data.get('order_id')
             if not pos_id and doc_id and doc_id.startswith('order_'):
                 suffix = doc_id.replace('order_', '')
-                if suffix.isdigit():
+                if suffix.isdigit() and len(suffix) < 10:
                     pos_id = int(suffix)
 
             # Never re-hydrate known agent-generated test orders
@@ -742,6 +742,11 @@ def _process_firestore_doc(app, socketio, data, doc_id=None, admin_doc=None):
                         subtotal=float(it.get('subtotal', 10.0))
                     ))
             sqldb.session.commit()
+            try:
+                from routes import _decrease_inventory
+                _decrease_inventory(new_o)
+            except Exception as ie:
+                print(f"[Inventory Deduction Notice]: {ie}", flush=True)
 
             # Sync to canonical order document: order_{new_o.id}
             sync_order_to_firestore(new_o.to_dict(), wait=True)
