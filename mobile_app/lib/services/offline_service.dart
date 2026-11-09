@@ -27,32 +27,55 @@ class OfflineService {
 
   // Default backend URL: origin on Web, saved URL on mobile, fallback to Render production
   static Future<String> getBaseUrl() async {
-    // 1. Web PWA / Browser: Always use current origin directly
+    // 1. User manual override (saved via Settings screen) takes top priority
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_keyBackendUrl);
+      if (saved != null && saved.trim().isNotEmpty) {
+        return saved.trim().replaceAll(RegExp(r'/+$'), '');
+      }
+    } catch (_) {}
+
+    // 2. Web PWA / Browser environment:
     if (kIsWeb) {
       try {
+        final port = Uri.base.port;
+        final host = Uri.base.host;
+        // If running under Flutter web dev server (e.g. port 8080, 3000, etc.),
+        // the backend Flask server is running on port 5000 on the same host:
+        if (port != 5000 && port != 80 && port != 443) {
+          final targetHost = (host.isNotEmpty && host != '0.0.0.0') ? host : 'localhost';
+          return 'http://$targetHost:5000/api';
+        }
+        // If served from Flask (:5000) or production reverse proxy (:80/:443 like Render)
         if (Uri.base.origin.isNotEmpty && Uri.base.origin.startsWith('http')) {
           return '${Uri.base.origin}/api';
         }
       } catch (_) {}
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_keyBackendUrl);
-    if (saved != null && saved.isNotEmpty) return saved;
+    // 3. Native mobile app (Android / iOS) or local fallback
+    try {
+      final host = Uri.base.host;
+      if (host.isNotEmpty && host != '0.0.0.0' && host != 'localhost') {
+        return 'http://$host:5000/api';
+      }
+      if (host == 'localhost') {
+        return 'http://localhost:5000/api';
+      }
+    } catch (_) {}
 
-    final host = Uri.base.host;
-    if (host.isNotEmpty && host != '0.0.0.0' && host != 'localhost') {
-      return 'http://$host:5000/api';
-    }
-    if (host == 'localhost') {
-      return 'http://localhost:5000/api';
-    }
     return 'https://kevs-siomai.onrender.com/api';
   }
 
   static Future<void> setBaseUrl(String url) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyBackendUrl, url.trim());
+    await prefs.setString(_keyBackendUrl, url.trim().replaceAll(RegExp(r'/+$'), ''));
+  }
+
+  static Future<void> resetBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyBackendUrl);
   }
 
   // ── Products Cache ──

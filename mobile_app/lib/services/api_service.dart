@@ -25,6 +25,21 @@ class ApiResult<T> {
 class ApiService {
   static const Duration _timeout = Duration(seconds: 6);
 
+  // ── Connection Health Check ──
+  static Future<bool> testConnection([String? customUrl]) async {
+    try {
+      final baseUrl = (customUrl != null && customUrl.trim().isNotEmpty)
+          ? customUrl.trim().replaceAll(RegExp(r'/+$'), '')
+          : await OfflineService.getBaseUrl();
+      final response = await http.get(
+        Uri.parse('$baseUrl/products?all=false'),
+      ).timeout(const Duration(seconds: 4));
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ── Firestore Direct Fallback ──
   static Future<List<Product>> _fetchFromFirestoreDirect() async {
     try {

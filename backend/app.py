@@ -256,28 +256,32 @@ def create_app(test_config=None):
             db.create_all()
         _seed_initial_data()
 
-    # ── Firebase Cloud Firestore ──────────────────────────────────────────────
-    try:
-        from firebase_client import (
-            get_firestore_db,
-            start_cloud_order_sync_listener,
-            hydrate_orders_from_firestore,
-            hydrate_payment_accounts_from_firestore,
-            hydrate_products_from_firestore,
-        )
-        try:
-            get_firestore_db()
-            print("🔥 [Firebase] Cloud Firestore Admin SDK is ACTIVE and connected to project 'boss-kevs'!")
-        except Exception as fe:
-            print(f"ℹ️ [Firebase] Service account key not detected ({fe}). Operating via Cloud Firestore REST API!")
-        
-        # Hydrate existing historical records, products, and payment accounts from Firestore on startup
-        hydrate_products_from_firestore(app)
-        hydrate_payment_accounts_from_firestore(app)
-        hydrate_orders_from_firestore(app)
-        start_cloud_order_sync_listener(app, socketio)
-    except Exception as fe:
-        print(f"⚠️ [Firebase] Could not initialize Firestore listener: {fe}")
+    # ── Firebase Cloud Firestore (Non-blocking background init) ───────────────
+    if not app.config.get('TESTING'):
+        def _bg_firestore_init():
+            try:
+                from firebase_client import (
+                    get_firestore_db,
+                    start_cloud_order_sync_listener,
+                    hydrate_orders_from_firestore,
+                    hydrate_payment_accounts_from_firestore,
+                    hydrate_products_from_firestore,
+                )
+                try:
+                    get_firestore_db()
+                    print("🔥 [Firebase] Cloud Firestore Admin SDK is ACTIVE and connected to project 'boss-kevs'!", flush=True)
+                except Exception as fe:
+                    print(f"ℹ️ [Firebase] Service account key not detected ({fe}). Operating via Cloud Firestore REST API!", flush=True)
+
+                # Hydrate existing historical records, products, and payment accounts from Firestore in background
+                hydrate_products_from_firestore(app)
+                hydrate_payment_accounts_from_firestore(app)
+                hydrate_orders_from_firestore(app)
+                start_cloud_order_sync_listener(app, socketio)
+            except Exception as fe:
+                print(f"⚠️ [Firebase] Could not initialize Firestore sync: {fe}", flush=True)
+
+        threading.Thread(target=_bg_firestore_init, daemon=True).start()
 
     _app_instance = app
     return app

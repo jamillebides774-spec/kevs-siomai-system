@@ -71,9 +71,11 @@ def get_local_ip():
 def main():
     local_ip = get_local_ip()
     url = f'http://{local_ip}:5000/'
+    mobile_url = f'http://{local_ip}:5000/mobile'
     print_banner()
-    print(f'  ➜ Local Access:     http://localhost:5000')
-    print(f'  ➜ Network (ESP32):   {url}\n')
+    print(f'  ➜ Admin Dashboard:  http://localhost:5000')
+    print(f'  ➜ Customer Mobile:  {mobile_url}')
+    print(f'  ➜ Network / ESP32:  {url}\n')
 
     # Prevent backend from opening a second browser window
     env = os.environ.copy()

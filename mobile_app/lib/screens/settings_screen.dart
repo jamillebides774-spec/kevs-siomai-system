@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/shop_provider.dart';
 import '../services/offline_service.dart';
+import '../services/api_service.dart';
 import '../widgets/kevs_logo.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -16,7 +17,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
+  final _serverUrlController = TextEditingController();
   bool _isLoading = true;
+  bool _isTestingConnection = false;
+  bool? _connectionHealthy;
 
   @override
   void initState() {
@@ -26,12 +30,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadProfile() async {
     final profile = await OfflineService.getCustomerProfile();
+    final currentUrl = await OfflineService.getBaseUrl();
     if (mounted) {
       setState(() {
         _nameController.text = profile['name'] ?? '';
         _phoneController.text = profile['phone'] ?? '';
         _addressController.text = profile['address'] ?? '';
+        _serverUrlController.text = currentUrl;
         _isLoading = false;
+      });
+    }
+    _runHealthCheck(currentUrl);
+  }
+
+  Future<void> _runHealthCheck(String url) async {
+    if (!mounted) return;
+    setState(() => _isTestingConnection = true);
+    final ok = await ApiService.testConnection(url);
+    if (mounted) {
+      setState(() {
+        _connectionHealthy = ok;
+        _isTestingConnection = false;
       });
     }
   }
@@ -41,7 +60,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
+    _serverUrlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _testAndSaveServerUrl() async {
+    final raw = _serverUrlController.text.trim();
+    if (raw.isEmpty) return;
+    setState(() => _isTestingConnection = true);
+    final ok = await ApiService.testConnection(raw);
+    await OfflineService.setBaseUrl(raw);
+    if (mounted) {
+      setState(() {
+        _connectionHealthy = ok;
+        _isTestingConnection = false;
+      });
+      final shop = context.read<ShopProvider>();
+      shop.loadProducts();
+      shop.refreshQueue();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(ok ? Icons.check_circle : Icons.warning_amber_rounded, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(ok
+                    ? 'Server URL saved and connected successfully!'
+                    : 'Server URL saved, but could not reach server. Verify IP & port.'),
+              ),
+            ],
+          ),
+          backgroundColor: ok ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _resetServerUrl() async {
+    await OfflineService.resetBaseUrl();
+    final defaultUrl = await OfflineService.getBaseUrl();
+    if (mounted) {
+      setState(() => _serverUrlController.text = defaultUrl);
+      _runHealthCheck(defaultUrl);
+      final shop = context.read<ShopProvider>();
+      shop.loadProducts();
+      shop.refreshQueue();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Server URL reset to automatic auto-detection.'),
+          backgroundColor: Color(0xFF10B981),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -374,9 +447,148 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
-                      // Save Profile Button
+                      // ── Server & Network Connection Card ──
+                      Card(
+                        color: cardBg,
+                        elevation: isDark ? 2 : 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: cardBorder, width: 1),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: const Color(0xFFDC2626).withValues(alpha: 0.15),
+                                    child: const Icon(Icons.dns_rounded, color: Color(0xFFDC2626)),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Server & Network Sync',
+                                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: textPrimary),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Connects the mobile app to the Admin Dashboard (Port 5000).',
+                                          style: TextStyle(fontSize: 12, color: textSecondary),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 250),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: _isTestingConnection
+                                          ? Colors.amber.withValues(alpha: 0.15)
+                                          : (_connectionHealthy == true
+                                              ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                              : Colors.red.withValues(alpha: 0.15)),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: _isTestingConnection
+                                            ? Colors.amber
+                                            : (_connectionHealthy == true ? const Color(0xFF10B981) : Colors.red),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (_isTestingConnection)
+                                          const SizedBox(
+                                            width: 10,
+                                            height: 10,
+                                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber),
+                                          )
+                                        else
+                                          Icon(
+                                            _connectionHealthy == true ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                                            size: 14,
+                                            color: _connectionHealthy == true ? const Color(0xFF10B981) : Colors.red,
+                                          ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          _isTestingConnection
+                                              ? 'Testing...'
+                                              : (_connectionHealthy == true ? 'Connected' : 'Offline'),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: _isTestingConnection
+                                                ? Colors.amber
+                                                : (_connectionHealthy == true ? const Color(0xFF10B981) : Colors.red),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Divider(height: 28, color: cardBorder),
+
+                              // Backend URL Field
+                              TextFormField(
+                                controller: _serverUrlController,
+                                keyboardType: TextInputType.url,
+                                style: TextStyle(color: textPrimary, fontSize: 13.5),
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(Icons.link_rounded),
+                                  labelText: 'Backend API Base URL',
+                                  hintText: 'http://localhost:5000/api',
+                                  helperText: 'Default: http://<PC-IP>:5000/api or Render cloud',
+                                  helperStyle: TextStyle(fontSize: 11, color: textMuted),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Action Buttons
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(0xFFDC2626),
+                                        side: const BorderSide(color: Color(0xFFDC2626)),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                                      label: const Text('Auto-Detect', style: TextStyle(fontWeight: FontWeight.bold)),
+                                      onPressed: _isTestingConnection ? null : _resetServerUrl,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFDC2626),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                      icon: const Icon(Icons.check_rounded, size: 18),
+                                      label: const Text('Test & Save', style: TextStyle(fontWeight: FontWeight.bold)),
+                                      onPressed: _isTestingConnection ? null : _testAndSaveServerUrl,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFDC2626),

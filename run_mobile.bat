@@ -8,18 +8,18 @@ echo ======================================================================
 echo.
 
 set "LOCAL_IP="
-for /f "delims=" %%a in ('python -c "import socket; print(socket.gethostbyname(socket.gethostname()))" 2^>nul') do (
+for /f "delims=" %%a in ('python -c "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.connect(('8.8.8.8', 80)); print(s.getsockname()[0]); s.close()" 2^>nul') do (
     set "LOCAL_IP=%%a"
 )
 if not defined LOCAL_IP (
-    for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr IPv4') do (
+    for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4" ^| findstr /v "192.168.114 192.168.242 169.254"') do (
         if not defined LOCAL_IP set "LOCAL_IP=%%a"
     )
 )
 if defined LOCAL_IP (
     set "LOCAL_IP=%LOCAL_IP: =%"
 ) else (
-    set "LOCAL_IP=192.168.123.39"
+    set "LOCAL_IP=192.168.123.52"
 )
 
 echo [OK] Detected IP: %LOCAL_IP%
@@ -28,8 +28,8 @@ echo ======================================================================
 echo   HOW TO OPEN ON YOUR PHONE:
 echo   1. Connect phone to the same Wi-Fi network.
 echo   2. Open Chrome or browser on your phone.
-echo   3. Navigate to:  http://%LOCAL_IP%:8080
-echo      (Or direct:   http://%LOCAL_IP%:5000/mobile)
+echo   3. Recommended (Unified Server): http://%LOCAL_IP%:5000/mobile
+echo      (Or standalone dev server):    http://%LOCAL_IP%:8080
 echo ======================================================================
 echo.
 
