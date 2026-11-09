@@ -69,7 +69,9 @@ def _configure_database(app):
     if raw_uri.startswith('mysql://'):
         raw_uri = 'mysql+pymysql://' + raw_uri[len('mysql://'):]
     elif raw_uri.startswith('postgres://'):
-        raw_uri = 'postgresql://' + raw_uri[len('postgres://'):]
+        raw_uri = 'postgresql+psycopg2://' + raw_uri[len('postgres://'):]
+    elif raw_uri.startswith('postgresql://'):
+        raw_uri = 'postgresql+psycopg2://' + raw_uri[len('postgresql://'):]
 
     engine_options = {
         'pool_pre_ping': True,
