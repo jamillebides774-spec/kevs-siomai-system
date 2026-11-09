@@ -1416,8 +1416,7 @@ async function renderQueueTab(showSpinner = true) {
     `;
     await refreshQueue();
     await refreshPendingCount();
-  } else {
-    // In-place update: always fetch fresh queue state from backend so cancellations/completions reflect immediately
+  } else if (!state.queueData || !state.queueData.orders) {
     await refreshQueue();
     await refreshPendingCount();
   }
@@ -2842,7 +2841,7 @@ async function renderCompletedTab(showSpinner = true) {
       </div>
     `;
     await fetchCompletedOrders();
-  } else {
+  } else if (!state.completedOrders || state.completedOrders.length === 0) {
     await fetchCompletedOrders();
   }
 

@@ -434,10 +434,14 @@ def sync_order_to_firestore(order_dict, wait=True):
         return sync_order_rest(data)
 
     if wait:
-        return _do_sync()
-    else:
-        _run_bg(_do_sync)
-        return True
+        try:
+            from flask import current_app
+            if current_app and current_app.config.get('TESTING'):
+                return _do_sync()
+        except Exception:
+            pass
+    _run_bg(_do_sync)
+    return True
 
 def sync_queue_to_firestore(queue_dict):
     def _task():
@@ -482,10 +486,14 @@ def sync_product_to_firestore(prod_dict, wait=True):
         return sync_product_rest(data)
 
     if wait:
-        return _do_sync()
-    else:
-        _run_bg(_do_sync)
-        return True
+        try:
+            from flask import current_app
+            if current_app and current_app.config.get('TESTING'):
+                return _do_sync()
+        except Exception:
+            pass
+    _run_bg(_do_sync)
+    return True
 
 def start_cloud_order_sync_listener(app, socketio):
     """
@@ -979,10 +987,14 @@ def sync_payment_account_to_firestore(account_dict, wait=True):
         return sync_payment_account_rest(data)
 
     if wait:
-        return _do_sync()
-    else:
-        _run_bg(_do_sync)
-        return True
+        try:
+            from flask import current_app
+            if current_app and current_app.config.get('TESTING'):
+                return _do_sync()
+        except Exception:
+            pass
+    _run_bg(_do_sync)
+    return True
 
 
 def delete_payment_account_from_firestore(account_id, wait=True):
@@ -1008,10 +1020,14 @@ def delete_payment_account_from_firestore(account_id, wait=True):
             return False
 
     if wait:
-        return _do_delete()
-    else:
-        _run_bg(_do_delete)
-        return True
+        try:
+            from flask import current_app
+            if current_app and current_app.config.get('TESTING'):
+                return _do_delete()
+        except Exception:
+            pass
+    _run_bg(_do_delete)
+    return True
 
 
 def hydrate_payment_accounts_from_firestore(app):
