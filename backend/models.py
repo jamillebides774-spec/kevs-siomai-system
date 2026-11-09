@@ -30,7 +30,14 @@ def to_manila_dt(dt):
         return None
     return utc_dt.astimezone(MANILA_TZ)
 
-class User(db.Model):
+class BaseModel(db.Model):
+    __abstract__ = True
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+class User(BaseModel):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -50,7 +57,7 @@ class User(db.Model):
         }
 
 
-class Product(db.Model):
+class Product(BaseModel):
     __tablename__ = 'products'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -104,7 +111,7 @@ class Product(db.Model):
         }
 
 
-class Order(db.Model):
+class Order(BaseModel):
     __tablename__ = 'orders'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -178,7 +185,7 @@ class Order(db.Model):
         }
 
 
-class OrderItem(db.Model):
+class OrderItem(BaseModel):
     __tablename__ = 'order_items'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -203,7 +210,7 @@ class OrderItem(db.Model):
         }
 
 
-class Sale(db.Model):
+class Sale(BaseModel):
     __tablename__ = 'sales'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -225,7 +232,7 @@ class Sale(db.Model):
         }
 
 
-class Queue(db.Model):
+class Queue(BaseModel):
     __tablename__ = 'queue'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -243,7 +250,7 @@ class Queue(db.Model):
         }
 
 
-class OfflineSyncLog(db.Model):
+class OfflineSyncLog(BaseModel):
     __tablename__ = 'offline_sync_logs'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -264,7 +271,7 @@ class OfflineSyncLog(db.Model):
         }
 
 
-class Review(db.Model):
+class Review(BaseModel):
     __tablename__ = 'reviews'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -297,7 +304,7 @@ class Review(db.Model):
         }
 
 
-class PaymentAccount(db.Model):
+class PaymentAccount(BaseModel):
     __tablename__ = 'payment_accounts'
 
     id = db.Column(db.Integer, primary_key=True)
