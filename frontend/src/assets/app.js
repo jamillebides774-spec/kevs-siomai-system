@@ -1102,9 +1102,6 @@ function renderActiveBannerHtml(activeOrder) {
             <div class="text-xs text-dark-300">Total Amount</div>
             <div class="text-xl font-bold text-emerald-400">₱${Number(activeOrder.total || activeOrder.total_amount || 0).toFixed(2)}</div>
           </div>
-          <button class="btn btn-secondary btn-buzz-order flex items-center gap-1.5" data-id="${activeOrder.id}">
-            ${Icons.bellRing({ size: 15 })} Buzz
-          </button>
           ${!isPaid && activeOrder.status !== 'cancelled' ? `
             <button class="btn btn-primary btn-confirm-payment flex items-center gap-1.5" data-id="${activeOrder.id}" data-method="${escapeHtml(payMethod)}">
               ${Icons.creditCard({ size: 15 })} Confirm Payment
@@ -1650,12 +1647,6 @@ function bindQueueCardActions() {
     };
   });
 
-  document.querySelectorAll('.btn-buzz-order').forEach(btn => {
-    btn.onclick = () => {
-      playBeep();
-      showToast('info', 'Calling Customer', 'Audible alert triggered for order!');
-    };
-  });
 
   document.querySelectorAll('.btn-confirm-payment').forEach(btn => {
     btn.onclick = async (e) => {
