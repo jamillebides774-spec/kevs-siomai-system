@@ -1,6 +1,6 @@
 /*
  * =====================================================================
- *  KEVS SIOMAI - ESP32 DUAL OLED + DUAL BUZZER (HTTPS RENDER READY)
+ *  KEVS SIOMAI - ESP32 DUAL OLED + DUAL BUZZER (FIXED HTTP & BUZZER)
  * =====================================================================
  *  Hardware Pinout:
  *   - OLED #1 (Customer Display) -> SDA: GPIO 21, SCL: GPIO 22
@@ -12,6 +12,7 @@
 
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include <HTTPClient.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -26,7 +27,7 @@ const char* SERVER_HOST   = "kevs-siomai.onrender.com";
 const int   SERVER_PORT   = 443;
 const char* API_PATH      = "/api/queue/display";
 
-// Set to true if active buzzer module triggers on LOW
+// Set to true kung ang active buzzer mo ay tumutunog sa LOW (active-low module)
 const bool ACTIVE_BUZZER_INVERTED = false; 
 
 // ================= 2. PIN DEFINITIONS ======================
@@ -57,7 +58,7 @@ int lastLowStock       = 0;
 bool firstPoll         = true;
 
 unsigned long lastPollTime = 0;
-const unsigned long POLL_INTERVAL_MS = 2000; // Poll every 2 seconds
+const unsigned long POLL_INTERVAL_MS = 1500; // Poll every 1.5 seconds
 
 // ================= 4. BUZZER FUNCTIONS =====================
 void writeActiveBuzzer(bool state) {
@@ -68,27 +69,7 @@ void writeActiveBuzzer(bool state) {
   }
 }
 
-// Active Buzzer: Double-beep para sa Now Serving Call
-void beepActiveBuzzerQueueCall() {
-  for (int i = 0; i < 2; i++) {
-    writeActiveBuzzer(true);
-    delay(160);
-    writeActiveBuzzer(false);
-    delay(100);
-  }
-}
-
-// Active Buzzer: Triple-beep para sa Low Stock Alert
-void beepActiveBuzzerLowStock() {
-  for (int i = 0; i < 3; i++) {
-    writeActiveBuzzer(true);
-    delay(70);
-    writeActiveBuzzer(false);
-    delay(70);
-  }
-}
-
-// Passive Buzzer: Software PWM / Tone generator
+// Passive Buzzer: Generates sound tone
 void playPassiveTone(int freq, int durationMs) {
   #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
     ledcAttach(PASSIVE_BUZZER_PIN, freq, 8);
@@ -104,24 +85,61 @@ void playPassiveTone(int freq, int durationMs) {
   #endif
 }
 
-// Bagong Order Chime: Two cheerful ascending tones (B5 -> E6)
-void playPassiveBuzzerNewOrderChime() {
-  playPassiveTone(988, 160);  // B5
+// Tunog kapag may DUMATING NA BAGONG ORDER
+void soundNewOrder() {
+  Serial.println("🔔 [BUZZER] SOUND: New Order Alert!");
+  // Active buzzer beep
+  writeActiveBuzzer(true);
+  delay(120);
+  writeActiveBuzzer(false);
+  delay(60);
+  // Passive buzzer chime (B5 -> E6)
+  playPassiveTone(988, 140);
+  delay(40);
+  playPassiveTone(1319, 280);
+}
+
+// Tunog kapag may ORDER NA NATAPOS (COMPLETED)
+void soundOrderCompleted() {
+  Serial.println("✅ [BUZZER] SOUND: Order Completed Chime!");
+  // Active buzzer single confirmation beep
+  writeActiveBuzzer(true);
+  delay(100);
+  writeActiveBuzzer(false);
   delay(50);
-  playPassiveTone(1319, 320); // E6
+  // Passive buzzer victory melody (C6 -> E6 -> G6)
+  playPassiveTone(1047, 100);
+  delay(30);
+  playPassiveTone(1319, 120);
+  delay(30);
+  playPassiveTone(1568, 220);
 }
 
-// Order Completed Chime: Ascending major triad (C6 -> E6 -> G6)
-void playPassiveBuzzerCompletedChime() {
-  playPassiveTone(1047, 120); // C6
-  delay(40);
-  playPassiveTone(1319, 140); // E6
-  delay(40);
-  playPassiveTone(1568, 250); // G6
+// Tunog kapag TINATAWAG ANG TICKET (NOW SERVING)
+void soundQueueCall() {
+  Serial.println("📢 [BUZZER] SOUND: Now Serving Call!");
+  for (int i = 0; i < 2; i++) {
+    writeActiveBuzzer(true);
+    playPassiveTone(1200, 150);
+    writeActiveBuzzer(false);
+    delay(100);
+  }
 }
 
-// Startup Sound: Checks both buzzers on boot
+// Tunog kapag LOW STOCK ALERT
+void soundLowStock() {
+  Serial.println("⚠️ [BUZZER] SOUND: Low Stock Alert!");
+  for (int i = 0; i < 3; i++) {
+    writeActiveBuzzer(true);
+    delay(70);
+    writeActiveBuzzer(false);
+    delay(70);
+  }
+}
+
+// Startup Sound: Papatugtugin agad pagkakasaksak ng ESP32
 void playStartupSound() {
+  Serial.println("🔊 Testing Buzzers on boot...");
   writeActiveBuzzer(true);
   delay(120);
   writeActiveBuzzer(false);
@@ -236,63 +254,42 @@ void renderKitchenOLED(int pending, int preparing, int ready, int latestTicket, 
   oledKitchen.display();
 }
 
-// ================= 6. HTTPS FETCH VIA WIFICLIENTSECURE =====
+// ================= 6. ROBUST HTTPS VIA HTTPCLIENT ==========
 bool fetchQueueData() {
   WiFiClientSecure client;
-  client.setInsecure(); // Skip certificate verification for smooth cloud connection
-  client.setTimeout(4); // 4 seconds timeout
+  client.setInsecure(); // Bypass cert verification for cloud Render
+  client.setTimeout(4000);
 
-  if (!client.connect(SERVER_HOST, SERVER_PORT)) {
-    Serial.printf("[HTTPS] Cannot connect to %s:%d\n", SERVER_HOST, SERVER_PORT);
+  HTTPClient https;
+  String url = "https://" + String(SERVER_HOST) + String(API_PATH);
+
+  if (!https.begin(client, url)) {
+    Serial.println("[HTTPS] Cannot initialize HTTPClient!");
     return false;
   }
 
-  // Send lightweight HTTP GET request
-  client.printf("GET %s HTTP/1.1\r\n", API_PATH);
-  client.printf("Host: %s\r\n", SERVER_HOST);
-  client.print("User-Agent: ESP32-DualOLED-KevsSiomai\r\n");
-  client.print("Connection: close\r\n\r\n");
+  https.setUserAgent("ESP32-DualOLED-KevsSiomai");
+  https.setTimeout(4000);
 
-  // Read HTTP Response
-  bool isBody = false;
-  String jsonBody = "";
-  unsigned long timeout = millis();
-
-  while (client.connected() || client.available()) {
-    if (client.available()) {
-      String line = client.readStringUntil('\n');
-      if (line == "\r" || line.length() == 0) {
-        isBody = true;
-        continue;
-      }
-      if (isBody) {
-        jsonBody += line;
-      }
-    }
-    if (millis() - timeout > 4000) {
-      Serial.println("[HTTPS] Read Timeout!");
-      client.stop();
-      return false;
-    }
+  int httpCode = https.GET();
+  if (httpCode != HTTP_CODE_OK) {
+    Serial.printf("[HTTPS] GET failed! HTTP Status: %d\n", httpCode);
+    https.end();
+    return false;
   }
-  client.stop();
+
+  String jsonBody = https.getString();
+  https.end();
 
   if (jsonBody.length() == 0) {
+    Serial.println("[HTTPS] Empty body received");
     return false;
   }
 
-  // Remove potential trailing or chunked metadata if present
-  int jsonStart = jsonBody.indexOf('{');
-  int jsonEnd   = jsonBody.lastIndexOf('}');
-  if (jsonStart < 0 || jsonEnd < 0 || jsonEnd <= jsonStart) {
-    return false;
-  }
-  jsonBody = jsonBody.substring(jsonStart, jsonEnd + 1);
-
-  StaticJsonDocument<768> doc;
+  StaticJsonDocument<1024> doc;
   DeserializationError err = deserializeJson(doc, jsonBody);
   if (err) {
-    Serial.print("[JSON] Parse failed: ");
+    Serial.print("[JSON] Parse error: ");
     Serial.println(err.c_str());
     return false;
   }
@@ -311,32 +308,32 @@ bool fetchQueueData() {
   int lowStockCount         = doc["low_stock_count"] | 0;
   const char* lowStockItem  = doc["low_stock_item"] | "";
 
-  // If no active orders, display 0 ("---")
+  // Kapag walang aktibong order, ipakita ang "---" (0)
   if (!hasActive) {
     nowServing = 0;
   }
 
-  // Sound triggers on state changes
+  // SOUND TRIGGERS SA MGA PAGBABAGO NG ORDER AT PILA
   if (!firstPoll) {
-    // 1. Bagong Order received -> Passive Buzzer Chime
+    // 1. May DUMATING NA BAGONG ORDER -> Bagong order chime + beep
     if (latestTicket > 0 && latestTicket != lastLatestTicket && latestTicket > lastLatestTicket) {
-      Serial.println("🔔 [BUZZER] NEW ORDER RECEIVED: Ticket #" + String(latestTicket));
-      playPassiveBuzzerNewOrderChime();
+      Serial.println("🔔 [EVENT] New Order Arrived! Ticket #" + String(latestTicket));
+      soundNewOrder();
     }
-    // 2. Now Serving called -> Active Buzzer double-beep
-    if (nowServing > 0 && nowServing != lastNowServing) {
-      Serial.println("📢 [BUZZER] NOW SERVING: Ticket #" + String(nowServing));
-      beepActiveBuzzerQueueCall();
-    }
-    // 3. Order Completed -> Passive Buzzer Completed Chime
+    // 2. May NATAPOS NA ORDER (Completed) -> Completed victory chime
     if (completedCount > lastCompletedCount && lastCompletedCount >= 0) {
-      Serial.println("✅ [BUZZER] ORDER COMPLETED: Total served = " + String(completedCount));
-      playPassiveBuzzerCompletedChime();
+      Serial.println("✅ [EVENT] Order Marked Completed! Total served = " + String(completedCount));
+      soundOrderCompleted();
     }
-    // 4. Low Stock Alert -> Active Buzzer triple-beep
+    // 3. Tinawag ang ticket (Now Serving) -> Queue call double-beep
+    if (nowServing > 0 && nowServing != lastNowServing) {
+      Serial.println("📢 [EVENT] Now Serving Ticket #" + String(nowServing));
+      soundQueueCall();
+    }
+    // 4. Low Stock Alert
     if (lowStockCount > 0 && lowStockCount != lastLowStock) {
-      Serial.println("⚠️ [BUZZER] LOW STOCK ALERT: " + String(lowStockItem));
-      beepActiveBuzzerLowStock();
+      Serial.println("⚠️ [EVENT] Low Stock Warning: " + String(lowStockItem));
+      soundLowStock();
     }
   }
 
@@ -346,7 +343,7 @@ bool fetchQueueData() {
   lastLowStock       = lowStockCount;
   firstPoll          = false;
 
-  // Render both OLED screens
+  // I-update ang dalawang OLED Screen
   renderCustomerOLED(nowServing, activeCount, servingStatus);
   renderKitchenOLED(pendingCount, preparingCount, readyCount, latestTicket, latestCust, latestTotal, lowStockCount, lowStockItem);
 
@@ -365,27 +362,27 @@ void setup() {
   pinMode(PASSIVE_BUZZER_PIN, OUTPUT);
   digitalWrite(PASSIVE_BUZZER_PIN, LOW);
 
-  // Initialize Dual I2C Busses
-  I2C_1.begin(OLED1_SDA, OLED1_SCL, 400000);
-  I2C_2.begin(OLED2_SDA, OLED2_SCL, 400000);
+  // Initialize Dual I2C Busses at stable 100kHz
+  I2C_1.begin(OLED1_SDA, OLED1_SCL, 100000);
+  I2C_2.begin(OLED2_SDA, OLED2_SCL, 100000);
 
-  // Initialize OLED #1 (Customer)
+  // Initialize OLED #1 (Customer - GPIO 21/22)
   if (!oledCustomer.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
-    Serial.println("[ERROR] OLED Customer not detected at 0x3C!");
+    Serial.println("[ERROR] OLED Customer not detected at 0x3C (GPIO 21/22)!");
   } else {
     oledCustomer.clearDisplay();
     oledCustomer.display();
   }
 
-  // Initialize OLED #2 (Kitchen)
+  // Initialize OLED #2 (Kitchen - GPIO 16/17)
   if (!oledKitchen.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) {
-    Serial.println("[ERROR] OLED Kitchen not detected at 0x3C!");
+    Serial.println("[ERROR] OLED Kitchen not detected at 0x3C (GPIO 16/17)!");
   } else {
     oledKitchen.clearDisplay();
     oledKitchen.display();
   }
 
-  // Play startup sound test
+  // Subukan agad ang sound ng buzzers pagkakasaksak
   playStartupSound();
 
   // Connect to WiFi
@@ -403,7 +400,7 @@ void setup() {
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\nWiFi Connected! IP: " + WiFi.localIP().toString());
     showStatus("KEVS SIOMAI ONLINE", "WiFi Connected!", WiFi.localIP().toString().c_str());
-    delay(1000);
+    delay(800);
   } else {
     Serial.println("\nWiFi Connection Failed! Running in Offline Mode...");
     showStatus("KEVS SIOMAI OFFLINE", "WiFi Failed!", "Retrying in loop...");
@@ -429,4 +426,3 @@ void loop() {
     }
   }
 }
-

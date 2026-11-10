@@ -333,7 +333,26 @@ def _get_queue_data():
     ).count()
 
     has_active = len(active_orders) > 0
-    now_serving_ticket = queue.now_serving if has_active else 0
+    # Determine the actual now serving ticket:
+    # If queue.now_serving corresponds to an active order, keep it.
+    # Otherwise, if the order at queue.now_serving was completed/cancelled and there are active orders,
+    # point now_serving to the earliest active order in line!
+    active_serving = Order.query.filter(
+        Order.queue_no == queue.now_serving,
+        Order.status.notin_(['completed', 'delivered', 'cancelled'])
+    ).first()
+    if not active_serving and has_active:
+        earliest_active = Order.query.filter(
+            Order.status.notin_(['completed', 'delivered', 'cancelled'])
+        ).order_by(Order.queue_no.asc()).first()
+        now_serving_ticket = earliest_active.queue_no if earliest_active else (queue.now_serving if has_active else 0)
+        queue.now_serving = now_serving_ticket
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+    else:
+        now_serving_ticket = queue.now_serving if has_active else 0
 
     stats = {
         'queue': queue.to_dict(),
@@ -925,7 +944,22 @@ def queue_display():
     completed_count = Order.query.filter(Order.status.in_(['completed', 'delivered'])).count()
 
     has_active = len(active_orders) > 0
-    now_serving_display = queue.now_serving if has_active else 0
+    if not now_serving_order and has_active:
+        earliest_active = Order.query.filter(
+            Order.status.notin_(['completed', 'delivered', 'cancelled'])
+        ).order_by(Order.queue_no.asc()).first()
+        if earliest_active:
+            now_serving_display = earliest_active.queue_no
+            queue.now_serving = earliest_active.queue_no
+            now_serving_order = earliest_active
+            try:
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+        else:
+            now_serving_display = queue.now_serving if has_active else 0
+    else:
+        now_serving_display = queue.now_serving if has_active else 0
 
     return jsonify({
         'now_serving': now_serving_display,
