@@ -5,8 +5,8 @@
  *  Hardware Pinout:
  *   - OLED #1 (Customer Display) -> SDA: GPIO 21, SCL: GPIO 22
  *   - OLED #2 (Kitchen Monitor)  -> SDA: GPIO 16, SCL: GPIO 17
- *   - Active Buzzer              -> GPIO 25
- *   - Passive Buzzer             -> GPIO 26
+ *   - Active Buzzer              -> GPIO 32
+ *   - Passive Buzzer             -> GPIO 23
  * =====================================================================
  */
 
@@ -41,8 +41,8 @@ const bool ACTIVE_BUZZER_INVERTED = false;
 #define SCREEN_HEIGHT 64
 #define OLED_ADDR     0x3C
 
-#define ACTIVE_BUZZER_PIN  25
-#define PASSIVE_BUZZER_PIN 26
+#define ACTIVE_BUZZER_PIN  32
+#define PASSIVE_BUZZER_PIN 23
 
 // ================= 3. OBJECTS & STATE ======================
 TwoWire I2C_1 = TwoWire(0);
@@ -209,48 +209,45 @@ void renderCustomerOLED(int nowServing, int activeCount, const char* statusText)
   oledCustomer.display();
 }
 
-void renderKitchenOLED(int pending, int preparing, int ready, int latestTicket, const char* cust, float total, int lowStock, const char* item) {
+void renderKitchenOLED(int pending, int preparing, int ready, int lowStock, const char* item) {
   oledKitchen.clearDisplay();
   oledKitchen.setTextColor(SSD1306_WHITE);
 
-  oledKitchen.fillRect(0, 0, 128, 12, SSD1306_WHITE);
+  // 1. Header Bar
+  oledKitchen.fillRect(0, 0, 128, 13, SSD1306_WHITE);
   oledKitchen.setTextColor(SSD1306_BLACK);
   oledKitchen.setTextSize(1);
-  oledKitchen.setCursor(16, 2);
+  oledKitchen.setCursor(18, 3);
   oledKitchen.print("KITCHEN MONITOR");
 
+  // 2. Order Counts (Pending, Preparing, Ready)
   oledKitchen.setTextColor(SSD1306_WHITE);
   oledKitchen.setTextSize(1);
-  oledKitchen.setCursor(0, 15);
+  oledKitchen.setCursor(2, 17);
   oledKitchen.print("PND:"); oledKitchen.print(pending);
-  oledKitchen.print(" PRP:"); oledKitchen.print(preparing);
-  oledKitchen.print(" RDY:"); oledKitchen.print(ready);
+  oledKitchen.print("  PRP:"); oledKitchen.print(preparing);
+  oledKitchen.print("  RDY:"); oledKitchen.print(ready);
 
-  oledKitchen.drawFastHLine(0, 25, 128, SSD1306_WHITE);
-  oledKitchen.setCursor(0, 28);
-  if (latestTicket > 0) {
-    oledKitchen.print("Latest: #");
-    oledKitchen.print(latestTicket);
-    oledKitchen.print(" P");
-    oledKitchen.print((int)total);
+  oledKitchen.drawFastHLine(0, 27, 128, SSD1306_WHITE);
 
-    oledKitchen.setCursor(0, 39);
-    oledKitchen.print("Cust: ");
-    oledKitchen.print(cust);
-  } else {
-    oledKitchen.print("No Active Orders");
-    oledKitchen.setCursor(0, 39);
-    oledKitchen.print("Standby Mode...");
-  }
-
-  oledKitchen.drawFastHLine(0, 50, 128, SSD1306_WHITE);
-  oledKitchen.setCursor(0, 54);
+  // 3. Stock Status (Itinaas ayon sa gusto mo)
+  oledKitchen.setCursor(2, 31);
   if (lowStock > 0) {
     oledKitchen.print("LOW: ");
     oledKitchen.print(item);
   } else {
-    oledKitchen.print("Stock: ALL OK");
+    oledKitchen.print("STOCK: ALL OK");
   }
+
+  oledKitchen.drawFastHLine(0, 42, 128, SSD1306_WHITE);
+
+  // 4. Paalala sa Ilalim: "BAWAL UTANG / MAHIYAIN KAMI"
+  oledKitchen.setTextSize(1);
+  oledKitchen.setCursor(31, 46);
+  oledKitchen.print("BAWAL UTANG");
+  oledKitchen.setCursor(25, 56);
+  oledKitchen.print("MAHIYAIN KAMI");
+
   oledKitchen.display();
 }
 
@@ -303,8 +300,6 @@ bool fetchQueueData() {
   int readyCount            = doc["ready_count"] | 0;
   int completedCount        = doc["completed_count"] | 0;
   int latestTicket          = doc["latest_ticket"] | 0;
-  const char* latestCust    = doc["latest_customer"] | "-";
-  float latestTotal         = doc["latest_total"] | 0.0;
   int lowStockCount         = doc["low_stock_count"] | 0;
   const char* lowStockItem  = doc["low_stock_item"] | "";
 
@@ -345,7 +340,7 @@ bool fetchQueueData() {
 
   // I-update ang dalawang OLED Screen
   renderCustomerOLED(nowServing, activeCount, servingStatus);
-  renderKitchenOLED(pendingCount, preparingCount, readyCount, latestTicket, latestCust, latestTotal, lowStockCount, lowStockItem);
+  renderKitchenOLED(pendingCount, preparingCount, readyCount, lowStockCount, lowStockItem);
 
   return true;
 }
