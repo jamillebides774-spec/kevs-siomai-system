@@ -79,17 +79,30 @@ def get_firestore_db():
     
     import firebase_admin
     from firebase_admin import credentials, firestore
-    
+
+    # 1. Check environment variable for raw JSON string (ideal for Render deployment)
+    env_json = (os.getenv('FIREBASE_KEY_JSON') or os.getenv('FIREBASE_SERVICE_ACCOUNT') or '').strip()
+    if env_json:
+        try:
+            cred_dict = json.loads(env_json)
+            if not firebase_admin._apps:
+                cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred)
+            _firestore_client = firestore.client()
+            return _firestore_client
+        except Exception as e:
+            _safe_print(f"[Firebase] Notice on FIREBASE_KEY_JSON env: {e}")
+
+    # 2. Check local file paths
     key_path = get_service_account_path()
-    if not key_path:
-        raise FileNotFoundError("Firebase serviceAccountKey.json not found in backend directory!")
-    
-    if not firebase_admin._apps:
-        cred = credentials.Certificate(key_path)
-        firebase_admin.initialize_app(cred)
-    
-    _firestore_client = firestore.client()
-    return _firestore_client
+    if key_path:
+        if not firebase_admin._apps:
+            cred = credentials.Certificate(key_path)
+            firebase_admin.initialize_app(cred)
+        _firestore_client = firestore.client()
+        return _firestore_client
+
+    raise FileNotFoundError("Firebase serviceAccountKey.json not found!")
 
 import threading
 
