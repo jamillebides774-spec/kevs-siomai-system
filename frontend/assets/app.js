@@ -101,7 +101,7 @@ export function getManilaDateKey(dateOrIso) {
     const m = parts.find(p => p.type === 'month')?.value;
     const day = parts.find(p => p.type === 'day')?.value;
     if (y && m && day) return `${y}-${m}-${day}`;
-  } catch (e) {}
+  } catch (e) { }
   const fallback = parseOrderUtcDate(dateOrIso);
   const phMs = fallback.getTime() + (8 * 60 * 60 * 1000);
   return new Date(phMs).toISOString().split('T')[0];
@@ -111,7 +111,7 @@ export function formatOrderDate(isoString) {
   if (!isoString) {
     const now = new Date();
     return now.toLocaleDateString('en-US', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' }) +
-           ' · ' + now.toLocaleTimeString('en-US', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', hour12: true });
+      ' · ' + now.toLocaleTimeString('en-US', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', hour12: true });
   }
   try {
     const d = parseOrderUtcDate(isoString);
@@ -132,7 +132,7 @@ function getNavbarQueuePillHtml() {
   const nowServingNum = q.now_serving ?? 0;
 
   const activeServing = orders.find(o => String(o.queue_no || o.id) === String(nowServingNum) && !['completed', 'delivered', 'cancelled'].includes(o.status)) ||
-                        orders.find(o => ['preparing', 'accepted', 'pending'].includes(o.status));
+    orders.find(o => ['preparing', 'accepted', 'pending'].includes(o.status));
 
   let servingHtml = '';
   if (activeServing) {
@@ -284,13 +284,13 @@ export function showToast(type, title, message) {
 
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  const icon = type === 'success' 
-    ? Icons.checkCircle({ size: 20, color: 'var(--emerald-400)' }) 
-    : type === 'error' 
-    ? Icons.xCircle({ size: 20, color: 'var(--red-400)' }) 
-    : type === 'warning' 
-    ? Icons.alert({ size: 20, color: 'var(--yellow-400)' }) 
-    : Icons.info({ size: 20, color: 'var(--blue-400)' });
+  const icon = type === 'success'
+    ? Icons.checkCircle({ size: 20, color: 'var(--emerald-400)' })
+    : type === 'error'
+      ? Icons.xCircle({ size: 20, color: 'var(--red-400)' })
+      : type === 'warning'
+        ? Icons.alert({ size: 20, color: 'var(--yellow-400)' })
+        : Icons.info({ size: 20, color: 'var(--blue-400)' });
 
   toast.innerHTML = `
     <span class="toast-icon">${icon}</span>
@@ -443,7 +443,7 @@ async function refreshPendingCount() {
       countEl.textContent = `${state.unsyncedCount} pending`;
       countEl.style.display = state.unsyncedCount > 0 ? 'inline-block' : 'none';
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function updateOfflineUI() {
@@ -569,7 +569,7 @@ function initSocket() {
         if (res && res.data) {
           refreshActiveView(res.data, false);
         }
-      }).catch(() => {});
+      }).catch(() => { });
     });
     state.socket.on('new_order', (newOrder) => {
       const ordId = String(newOrder?.id ?? newOrder?.order_id ?? '');
@@ -579,14 +579,14 @@ function initSocket() {
           if (res && res.data) {
             refreshActiveView(res.data, false);
           }
-        }).catch(() => {});
+        }).catch(() => { });
         return;
       }
       api.getQueue().then(res => {
         if (res && res.data) {
           refreshActiveView(res.data, true, newOrder);
         }
-      }).catch(() => {});
+      }).catch(() => { });
     });
     state.socket.on('sales_updated', () => {
       if (state.activeTab === 'analytics') {
@@ -1125,7 +1125,7 @@ async function openSelectOrderAccountModal(rawOrderId, requireReason = false) {
   const orderId = String(rawOrderId).replace(/^order_/, '').trim();
   await refreshPaymentAccounts();
   const order = (state.queueData?.orders || []).find(o => String(o.id) === orderId)
-             || (state.completedOrders || []).find(o => String(o.id) === orderId);
+    || (state.completedOrders || []).find(o => String(o.id) === orderId);
   if (!order) return;
 
   const avail = state.availablePaymentAccounts || [];
@@ -1134,7 +1134,7 @@ async function openSelectOrderAccountModal(rawOrderId, requireReason = false) {
 
   const currentAcctInfo = getOrderAccountInfo(order);
   let selectedId = avail.find(a => a.account_id === currentAcctInfo.accountId)?.account_id
-                || (avail[0]?.account_id || '');
+    || (avail[0]?.account_id || '');
 
   const renderModalContent = () => {
     const chosenAcct = avail.find(a => a.account_id === selectedId) || null;
@@ -1170,11 +1170,11 @@ async function openSelectOrderAccountModal(rawOrderId, requireReason = false) {
                 <label class="block text-xs text-dark-300 font-medium mb-2">Available Receiving Accounts (${avail.length})</label>
                 <div class="space-y-2">
                   ${avail.map(a => {
-                    const isSel = a.account_id === selectedId;
-                    const remLabel = a.limit_type === 'amount'
-                      ? `₱${Number(a.remaining_capacity).toFixed(2)} remaining`
-                      : `${Math.round(a.remaining_capacity)} txns remaining`;
-                    return `
+      const isSel = a.account_id === selectedId;
+      const remLabel = a.limit_type === 'amount'
+        ? `₱${Number(a.remaining_capacity).toFixed(2)} remaining`
+        : `${Math.round(a.remaining_capacity)} txns remaining`;
+      return `
                       <div class="acct-choice-item" data-acct-id="${escapeHtml(a.account_id)}" style="cursor: pointer; padding: 10px 12px; border-radius: 10px; border: 1.5px solid ${isSel ? '#3b82f6' : 'var(--dark-600)'}; background: ${isSel ? 'rgba(59,130,246,0.14)' : 'var(--dark-800)'}; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
                         <div>
                           <div class="font-bold text-sm text-white flex items-center gap-2">
@@ -1190,7 +1190,7 @@ async function openSelectOrderAccountModal(rawOrderId, requireReason = false) {
                         </div>
                       </div>
                     `;
-                  }).join('')}
+    }).join('')}
                 </div>
               </div>
 
@@ -1270,7 +1270,7 @@ async function handleConfirmPayment(rawId, paymentMethod = 'Cash', triggerBtn = 
   if (!rawId) return;
   const orderId = String(rawId).replace(/^order_/, '').trim();
   const existingOrder = (state.queueData?.orders || []).find(o => String(o.id) === orderId)
-                     || (state.completedOrders || []).find(o => String(o.id) === orderId);
+    || (state.completedOrders || []).find(o => String(o.id) === orderId);
 
   if (existingOrder && isOnlineOrder(existingOrder)) {
     const acctInfo = getOrderAccountInfo(existingOrder);
@@ -1369,7 +1369,7 @@ function renderActiveBannerHtml(activeOrder) {
               Order #${activeOrder.id} &bull; ${formatOrderItems(activeOrder.items)}
             </p>
             <p class="text-xs text-dark-400 mt-1 flex items-center gap-1.5">
-              ${Icons.calendar({ size: 13, color: '#64748b' })} ${activeOrder.date_display || new Date(activeOrder.created_at || Date.now()).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}
+              ${Icons.calendar({ size: 13, color: '#64748b' })} ${activeOrder.date_display || new Date(activeOrder.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
           </div>
         </div>
@@ -1444,8 +1444,8 @@ async function renderQueueTab(showSpinner = true) {
   // Active serving order — only show banner when genuinely in-progress
   const activeOrder = hasActive
     ? (orders.find(o => String(o.queue_no || o.queue_number) === String(nowServingNum) && !['completed', 'delivered', 'cancelled'].includes(o.status)) ||
-       orders.find(o => ['preparing', 'accepted'].includes(o.status)) ||
-       activeOrders[0])
+      orders.find(o => ['preparing', 'accepted'].includes(o.status)) ||
+      activeOrders[0])
     : null;
 
   // Fast In-Place Real-Time DOM Update (Zero Flicker & Preserves Focus/State)
@@ -1575,18 +1575,18 @@ async function renderQueueTab(showSpinner = true) {
     <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
       <div class="tab-bar">
         ${['All Active', 'Pending', 'Preparing', 'Ready', 'Cancelled'].map(tab => {
-          const filterKey = tab === 'All Active' ? 'All' : tab;
-          let count = 0;
-          if (filterKey === 'All') count = activeOrders.length;
-          else if (filterKey === 'Cancelled') count = orders.filter(o => o.status === 'cancelled').length;
-          else count = activeOrders.filter(o => mapStage(o.status) === filterKey.toLowerCase()).length;
-          return `
+    const filterKey = tab === 'All Active' ? 'All' : tab;
+    let count = 0;
+    if (filterKey === 'All') count = activeOrders.length;
+    else if (filterKey === 'Cancelled') count = orders.filter(o => o.status === 'cancelled').length;
+    else count = activeOrders.filter(o => mapStage(o.status) === filterKey.toLowerCase()).length;
+    return `
             <button class="tab-btn ${(state.queueFilter === filterKey || (filterKey === 'All' && !state.queueFilter)) ? 'active' : ''}" data-filter="${filterKey}">
               ${tab}
               <span class="tab-count">${count}</span>
             </button>
           `;
-        }).join('')}
+  }).join('')}
       </div>
 
       <div style="position: relative; width: 280px;">
@@ -1673,16 +1673,16 @@ function formatOrderItems(items) {
   return `
     <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;">
       ${items.map(i => {
-        const qty = i.quantity || i.qty || 1;
-        const name = i.product_name || i.name || 'Siomai';
-        const img = i.image_url || getProductImageUrl(name);
-        return `
+    const qty = i.quantity || i.qty || 1;
+    const name = i.product_name || i.name || 'Siomai';
+    const img = i.image_url || getProductImageUrl(name);
+    return `
           <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); font-size: 12px; color: var(--dark-200); height: auto; line-height: 1.35; word-break: break-word;">
             ${img ? `<img src="${escapeHtml(img)}" alt="${escapeHtml(name)}" style="width: 18px; height: 18px; border-radius: 4px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;" onerror="this.style.display='none'">` : ''}
             <span><strong style="color: #fff;">${qty}x</strong> ${escapeHtml(name)}</span>
           </span>
         `;
-      }).join('')}
+  }).join('')}
     </div>
   `;
 }
@@ -2183,9 +2183,9 @@ async function openOrderModal() {
             <label class="block text-xs text-dark-300 font-medium mb-2">Select Items</label>
             <div class="space-y-2.5" style="max-height: clamp(260px, 44vh, 380px); overflow-y: auto; padding-right: 6px;">
               ${products.map(p => {
-                const isActive = p.is_active !== false;
-                const addonType = getAddonType(p);
-                return `
+    const isActive = p.is_active !== false;
+    const addonType = getAddonType(p);
+    return `
                 <div class="card-sm p-3 flex flex-wrap items-center justify-between gap-2.5" id="order-item-card-${p.id}" style="background: var(--dark-800); height: auto; min-height: 64px; ${!isActive ? 'opacity: 0.55; border: 1px dashed rgba(239,68,68,0.3);' : ''}">
                   <div style="display: flex; align-items: flex-start; gap: 10px; min-width: 180px; flex: 1 1 220px;">
                     ${p.image_url ? `<img src="${escapeHtml(getFreshImageUrl(p.image_url))}" alt="${escapeHtml(p.name)}" style="width: 42px; height: 42px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; margin-top: 2px; ${!isActive ? 'filter: grayscale(100%);' : ''}" onerror="this.style.display='none'">` : ''}
@@ -2212,7 +2212,7 @@ async function openOrderModal() {
                   </div>
                 </div>
               `;
-              }).join('')}
+  }).join('')}
             </div>
           </div>
         </div>
@@ -2470,11 +2470,11 @@ async function openOrderModal() {
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px;">
           ${avail.map(a => {
-            const isSel = a.account_id === chosen.account_id;
-            const capStr = a.limit_type === 'amount'
-              ? `₱${Number(a.remaining_capacity).toFixed(0)} left`
-              : `${Math.round(a.remaining_capacity)} txns left`;
-            return `
+      const isSel = a.account_id === chosen.account_id;
+      const capStr = a.limit_type === 'amount'
+        ? `₱${Number(a.remaining_capacity).toFixed(0)} left`
+        : `${Math.round(a.remaining_capacity)} txns left`;
+      return `
               <div class="modal-online-acct-pill" data-acct-id="${escapeHtml(a.account_id)}" style="cursor: pointer; padding: 8px 10px; border-radius: 10px; border: 1.5px solid ${isSel ? '#3b82f6' : 'rgba(255,255,255,0.12)'}; background: ${isSel ? 'rgba(59,130,246,0.2)' : 'rgba(15,23,42,0.55)'}; transition: all 0.15s ease;">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
                   <span style="font-size: 12px; font-weight: 700; color: #fff;">${escapeHtml(a.account_name)}</span>
@@ -2488,7 +2488,7 @@ async function openOrderModal() {
                 </div>
               </div>
             `;
-          }).join('')}
+    }).join('')}
         </div>
       </div>
 
@@ -2548,7 +2548,7 @@ async function openOrderModal() {
       }
       updateTotal();
       updateAddonLimits(false);
-    } catch (_) {}
+    } catch (_) { }
   };
 
   const handleCloseOrderModal = async () => {
@@ -2853,9 +2853,9 @@ async function renderCompletedTab(showSpinner = true) {
   const paidCompleted = validCompleted.filter(o => isOrderPaid(o));
   const totalRev = paidCompleted.reduce((sum, o) => sum + Number(o.total || o.total_amount || 0), 0);
   const cashRev = paidCompleted.filter(o => (o.payment_method || 'cash').toLowerCase().includes('cash'))
-                               .reduce((sum, o) => sum + Number(o.total || o.total_amount || 0), 0);
+    .reduce((sum, o) => sum + Number(o.total || o.total_amount || 0), 0);
   const gcashRev = paidCompleted.filter(o => (o.payment_method || '').toLowerCase().includes('gcash'))
-                                .reduce((sum, o) => sum + Number(o.total || o.total_amount || 0), 0);
+    .reduce((sum, o) => sum + Number(o.total || o.total_amount || 0), 0);
 
   const filtered = getFilteredCompletedOrders();
 
@@ -3070,13 +3070,13 @@ function renderCompletedCards(filtered) {
             <div class="text-xs text-dark-300 font-medium mb-1.5">Fulfilled Items:</div>
             <div style="display: flex; flex-direction: column; gap: 6px;">
               ${(order.items && order.items.length) ? order.items.map(i => {
-                const qty = i.quantity || i.qty || 1;
-                const name = i.product_name || i.name || 'Siomai';
-                const unit = i.unit || (name.toLowerCase().includes('royal') ? 'bottles' : (name.toLowerCase().includes('coke') || name.toLowerCase().includes('sprite')) ? 'cans' : (name.toLowerCase().includes('chilli') || name.toLowerCase().includes('soy') || name.toLowerCase().includes('calamansi')) ? 'packs' : 'pcs');
-                const price = Number(i.price || 0).toFixed(2);
-                const subtotal = Number(i.subtotal || (i.price * qty) || 0).toFixed(2);
-                const img = i.image_url || getProductImageUrl(name);
-                return `
+      const qty = i.quantity || i.qty || 1;
+      const name = i.product_name || i.name || 'Siomai';
+      const unit = i.unit || (name.toLowerCase().includes('royal') ? 'bottles' : (name.toLowerCase().includes('coke') || name.toLowerCase().includes('sprite')) ? 'bottles' : (name.toLowerCase().includes('chilli') || name.toLowerCase().includes('soy') || name.toLowerCase().includes('calamansi')) ? 'packs' : 'pcs');
+      const price = Number(i.price || 0).toFixed(2);
+      const subtotal = Number(i.subtotal || (i.price * qty) || 0).toFixed(2);
+      const img = i.image_url || getProductImageUrl(name);
+      return `
                   <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px 8px; border-radius: 8px; background: rgba(255,255,255,0.04); font-size: 12px; gap: 8px;">
                     <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
                       <img src="${escapeHtml(img)}" alt="${escapeHtml(name)}" style="width: 22px; height: 22px; border-radius: 5px; object-fit: cover; flex-shrink: 0;" onerror="this.style.display='none'">
@@ -3087,7 +3087,7 @@ function renderCompletedCards(filtered) {
                     <span class="text-dark-300 font-mono" style="flex-shrink: 0; margin-left: 8px;">₱${subtotal}</span>
                   </div>
                 `;
-              }).join('') : `
+    }).join('') : `
                 <div style="font-size: 12px; color: var(--dark-400);">1 order fulfilled</div>
               `}
             </div>
@@ -3291,13 +3291,13 @@ function openReceiptModal(order) {
               </div>
 
               ${(order.items && order.items.length) ? order.items.map(i => {
-                const qty = Number(i.quantity ?? i.qty ?? 1);
-                const name = i.product_name || i.name || 'Siomai';
-                const unit = i.unit || (name.toLowerCase().includes('royal') ? 'bottles' : (name.toLowerCase().includes('coke') || name.toLowerCase().includes('sprite')) ? 'cans' : (name.toLowerCase().includes('chilli') || name.toLowerCase().includes('soy') || name.toLowerCase().includes('calamansi')) ? 'packs' : 'pcs');
-                const rawUnitPrice = Number(i.unit_price ?? i.price ?? 0);
-                const price = rawUnitPrice.toFixed(2);
-                const subtotal = Number(i.subtotal ?? (rawUnitPrice * qty) ?? 0).toFixed(2);
-                return `
+    const qty = Number(i.quantity ?? i.qty ?? 1);
+    const name = i.product_name || i.name || 'Siomai';
+    const unit = i.unit || (name.toLowerCase().includes('royal') ? 'bottles' : (name.toLowerCase().includes('coke') || name.toLowerCase().includes('sprite')) ? 'bottles' : (name.toLowerCase().includes('chilli') || name.toLowerCase().includes('soy') || name.toLowerCase().includes('calamansi')) ? 'packs' : 'pcs');
+    const rawUnitPrice = Number(i.unit_price ?? i.price ?? 0);
+    const price = rawUnitPrice.toFixed(2);
+    const subtotal = Number(i.subtotal ?? (rawUnitPrice * qty) ?? 0).toFixed(2);
+    return `
                   <div class="receipt-item-row" style="display: flex; justify-content: space-between; align-items: flex-start; font-size: 12px; margin-bottom: 5px; line-height: 1.35;">
                     <span style="flex: 1; padding-right: 8px; word-break: break-word;">
                       <strong>${escapeHtml(name)}</strong>
@@ -3311,7 +3311,7 @@ function openReceiptModal(order) {
                     </span>
                   </div>
                 `;
-              }).join('') : `
+  }).join('') : `
                 <div style="font-size: 12px; text-align: center; color: #525252;">1 order item</div>
               `}
             </div>
@@ -3476,23 +3476,23 @@ async function renderPaymentsTab(showSpinner = true) {
     <!-- Payment Accounts Grid -->
     <div class="orders-grid">
       ${accounts.map(acct => {
-        const isCount = (acct.limit_type || 'count') === 'count';
-        const limitNum = Number(acct.transaction_limit || 0);
-        const usageNum = isCount ? Number(acct.confirmed_count || 0) : Number(acct.confirmed_amount || 0);
-        const remNum = Number(acct.remaining_capacity || 0);
-        const pct = limitNum > 0 ? Math.min(100, Math.round((usageNum / limitNum) * 100)) : 0;
-        const barColor = acct.limit_reached ? '#ef4444' : (pct >= 80 ? '#f59e0b' : '#10b981');
-        const statusBadge = !acct.is_active
-          ? '<span class="badge badge-red">Inactive</span>'
-          : (acct.limit_reached
-            ? '<span class="badge badge-yellow">Limit Reached</span>'
-            : '<span class="badge badge-green">Active</span>');
+    const isCount = (acct.limit_type || 'count') === 'count';
+    const limitNum = Number(acct.transaction_limit || 0);
+    const usageNum = isCount ? Number(acct.confirmed_count || 0) : Number(acct.confirmed_amount || 0);
+    const remNum = Number(acct.remaining_capacity || 0);
+    const pct = limitNum > 0 ? Math.min(100, Math.round((usageNum / limitNum) * 100)) : 0;
+    const barColor = acct.limit_reached ? '#ef4444' : (pct >= 80 ? '#f59e0b' : '#10b981');
+    const statusBadge = !acct.is_active
+      ? '<span class="badge badge-red">Inactive</span>'
+      : (acct.limit_reached
+        ? '<span class="badge badge-yellow">Limit Reached</span>'
+        : '<span class="badge badge-green">Active</span>');
 
-        const limitDisplay = isCount ? `${Math.round(limitNum)} txns` : `₱${limitNum.toFixed(2)}`;
-        const usageDisplay = isCount ? `${acct.confirmed_count || 0} txns` : `₱${Number(acct.confirmed_amount || 0).toFixed(2)}`;
-        const remainingDisplay = isCount ? `${Math.round(remNum)} txns` : `₱${remNum.toFixed(2)}`;
+    const limitDisplay = isCount ? `${Math.round(limitNum)} txns` : `₱${limitNum.toFixed(2)}`;
+    const usageDisplay = isCount ? `${acct.confirmed_count || 0} txns` : `₱${Number(acct.confirmed_amount || 0).toFixed(2)}`;
+    const remainingDisplay = isCount ? `${Math.round(remNum)} txns` : `₱${remNum.toFixed(2)}`;
 
-        return `
+    return `
           <div class="card p-5" style="display: flex; flex-direction: column; justify-content: space-between; border: 1.5px solid ${acct.is_available ? 'rgba(16,185,129,0.3)' : (acct.limit_reached ? 'rgba(245,158,11,0.35)' : 'var(--dark-600)')};">
             <div>
               <!-- Header: Account Name, Provider & Status -->
@@ -3562,7 +3562,7 @@ async function renderPaymentsTab(showSpinner = true) {
             </div>
           </div>
         `;
-      }).join('')}
+  }).join('')}
     </div>
   `;
 
@@ -3887,30 +3887,30 @@ function matchInventoryCategory(product, selectedCategory) {
 
   if (selectedCategory === 'Hotspot Siomai') {
     return cat === 'hotspot siomai' ||
-           cat === 'siomai' ||
-           cat.includes('siomai') ||
-           cat.includes('dumpling') ||
-           name.includes('siomai');
+      cat === 'siomai' ||
+      cat.includes('siomai') ||
+      cat.includes('dumpling') ||
+      name.includes('siomai');
   }
 
   if (selectedCategory === 'Drinks') {
     return cat === 'drinks' ||
-           cat === 'drink' ||
-           cat.includes('drink') ||
-           cat.includes('beverage') ||
-           ['coke', 'royal', 'sprite', 'water', 'juice'].some(d => name.includes(d));
+      cat === 'drink' ||
+      cat.includes('drink') ||
+      cat.includes('beverage') ||
+      ['coke', 'royal', 'sprite', 'water', 'juice'].some(d => name.includes(d));
   }
 
   if (selectedCategory === 'Add-ons') {
     return cat === 'add-ons' ||
-           cat === 'addons' ||
-           cat === 'add ons' ||
-           cat === 'sauces' ||
-           cat === 'sauce' ||
-           cat.includes('add') ||
-           cat.includes('sauce') ||
-           cat.includes('condiment') ||
-           ['chilli', 'chili', 'garlic', 'soy', 'calamansi'].some(s => name.includes(s));
+      cat === 'addons' ||
+      cat === 'add ons' ||
+      cat === 'sauces' ||
+      cat === 'sauce' ||
+      cat.includes('add') ||
+      cat.includes('sauce') ||
+      cat.includes('condiment') ||
+      ['chilli', 'chili', 'garlic', 'soy', 'calamansi'].some(s => name.includes(s));
   }
 
   return cat === selectedCategory.toLowerCase().trim();
@@ -3980,9 +3980,9 @@ function renderInventoryRows(products) {
         </td>
         <td class="py-3 px-4">
           <div class="flex flex-col gap-1">
-            ${isActive 
-              ? '<span class="badge badge-green">Active</span>' 
-              : '<span class="badge badge-red">Inactive</span>'}
+            ${isActive
+        ? '<span class="badge badge-green">Active</span>'
+        : '<span class="badge badge-red">Inactive</span>'}
             ${isActive ? (isOut ? '<span class="badge badge-red">Out of Stock</span>' : isLow ? '<span class="badge badge-yellow">Low Stock</span>' : '<span class="badge badge-green">In Stock</span>') : ''}
           </div>
         </td>
@@ -4133,16 +4133,16 @@ async function renderInventoryTab() {
     <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
       <div class="tab-bar" id="inv-tab-bar">
         ${['All', 'Hotspot Siomai', 'Drinks', 'Add-ons'].map(cat => {
-          const count = cat === 'All'
-            ? products.length
-            : products.filter(p => matchInventoryCategory(p, cat)).length;
-          return `
+    const count = cat === 'All'
+      ? products.length
+      : products.filter(p => matchInventoryCategory(p, cat)).length;
+    return `
             <button class="tab-btn ${state.inventoryFilter === cat ? 'active' : ''}" data-inv-filter="${cat}">
               ${cat}
               <span class="tab-count">${count}</span>
             </button>
           `;
-        }).join('')}
+  }).join('')}
       </div>
 
       <div style="position: relative; width: 280px;">
@@ -4354,7 +4354,7 @@ function openAddProductModal() {
                 <select id="prod-unit" class="input">
                   <option value="pcs" selected>pcs (Pieces)</option>
                   <option value="bottles">bottles (Bottles)</option>
-                  <option value="cans">cans (Cans)</option>
+                  <option value="bottles">bottles (bottles)</option>
                   <option value="packs">packs (Packets)</option>
                   <option value="servings">servings (Servings)</option>
                 </select>
@@ -4543,7 +4543,7 @@ function openAddProductModal() {
 function openEditProductModal(product) {
   if (!product) return;
   const modalContainer = document.getElementById('modal-container');
-  const initialUnit = product.unit || (product.category === 'Drinks' ? (product.name.toLowerCase().includes('royal') ? 'bottles' : 'cans') : (product.category === 'Add-ons' ? 'packs' : 'pcs'));
+  const initialUnit = product.unit || (product.category === 'Drinks' ? (product.name.toLowerCase().includes('royal') ? 'bottles' : 'bottles') : (product.category === 'Add-ons' ? 'packs' : 'pcs'));
 
   modalContainer.innerHTML = `
     <div class="modal-backdrop" id="edit-prod-modal-backdrop">
@@ -4579,7 +4579,7 @@ function openEditProductModal(product) {
                 <select id="edit-prod-unit" class="input">
                   <option value="pcs" ${initialUnit === 'pcs' ? 'selected' : ''}>pcs (Pieces)</option>
                   <option value="bottles" ${initialUnit === 'bottles' ? 'selected' : ''}>bottles (Bottles)</option>
-                  <option value="cans" ${initialUnit === 'cans' ? 'selected' : ''}>cans (Cans)</option>
+                  <option value="bottles" ${initialUnit === 'bottles' ? 'selected' : ''}>bottles (bottles)</option>
                   <option value="packs" ${initialUnit === 'packs' ? 'selected' : ''}>packs (Packets)</option>
                   <option value="servings" ${initialUnit === 'servings' ? 'selected' : ''}>servings (Servings)</option>
                 </select>
@@ -5045,7 +5045,7 @@ async function renderAnalyticsTab() {
       return Icons.sparkles({ size: 20, color: 'var(--yellow-400)' });
     };
 
-  container.innerHTML = `
+    container.innerHTML = `
     <!-- Analytics Header & Report Navigation -->
     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
       <div>
@@ -5344,12 +5344,12 @@ async function renderAnalyticsTab() {
             </thead>
             <tbody>
               ${topProducts.length > 0 ? topProducts.map(p => {
-                const pRev = Number(p.revenue || 0);
-                const pQty = Number(p.quantity || 0);
-                const sharePct = totalRev > 0 ? Math.round((pRev / totalRev) * 100) : 0;
-                const isTop = topRevenueProduct && topRevenueProduct.name === p.name && pRev > 0;
+      const pRev = Number(p.revenue || 0);
+      const pQty = Number(p.quantity || 0);
+      const sharePct = totalRev > 0 ? Math.round((pRev / totalRev) * 100) : 0;
+      const isTop = topRevenueProduct && topRevenueProduct.name === p.name && pRev > 0;
 
-                return `
+      return `
                   <tr style="border-bottom: 1px solid var(--dark-600); font-size: 14px;">
                     <td class="py-3 px-4 font-bold text-white">
                       <div style="display: flex; align-items: center; gap: 8px;">
@@ -5372,7 +5372,7 @@ async function renderAnalyticsTab() {
                     </td>
                   </tr>
                 `;
-              }).join('') : `
+    }).join('') : `
                 <tr>
                   <td colspan="5" class="py-6 text-center text-dark-400 text-sm">
                     No completed product sales recorded in the database yet.
@@ -5559,12 +5559,12 @@ async function renderAnalyticsTab() {
       <!-- Prescriptive Action Cards Grid -->
       <div class="space-y-4 mb-6">
         ${(presc.recommendations || []).length > 0 ? (presc.recommendations || []).map(r => {
-          const isCritical = r.priority === 'critical';
-          const isWarning = r.priority === 'warning';
-          const borderColor = isCritical ? 'var(--brand-500)' : (isWarning ? 'var(--yellow-500)' : 'var(--blue-500)');
-          const badgeClass = isCritical ? 'badge-red' : (isWarning ? 'badge-yellow' : 'badge-blue');
+      const isCritical = r.priority === 'critical';
+      const isWarning = r.priority === 'warning';
+      const borderColor = isCritical ? 'var(--brand-500)' : (isWarning ? 'var(--yellow-500)' : 'var(--blue-500)');
+      const badgeClass = isCritical ? 'badge-red' : (isWarning ? 'badge-yellow' : 'badge-blue');
 
-          return `
+      return `
             <div class="card p-5" style="border-left: 4px solid ${borderColor};">
               <div class="flex flex-wrap items-start justify-between gap-3 mb-2">
                 <div class="flex items-center gap-2.5">
@@ -5599,7 +5599,7 @@ async function renderAnalyticsTab() {
               ` : ''}
             </div>
           `;
-        }).join('') : `
+    }).join('') : `
           <div class="card p-6 text-center text-dark-300">
             All inventory levels and operations are currently within normal baseline parameters.
           </div>
@@ -5608,57 +5608,57 @@ async function renderAnalyticsTab() {
     </div>
   `;
 
-  // Attach Filter Pill click handlers
-  container.querySelectorAll('.analytics-tab-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const section = e.currentTarget.getAttribute('data-section');
-      state.analyticsSection = section;
-      const descEl = document.getElementById('section-descriptive');
-      const predEl = document.getElementById('section-predictive');
-      const prescEl = document.getElementById('section-prescriptive');
-      const unifiedEl = document.getElementById('card-unified-revenue');
+    // Attach Filter Pill click handlers
+    container.querySelectorAll('.analytics-tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const section = e.currentTarget.getAttribute('data-section');
+        state.analyticsSection = section;
+        const descEl = document.getElementById('section-descriptive');
+        const predEl = document.getElementById('section-predictive');
+        const prescEl = document.getElementById('section-prescriptive');
+        const unifiedEl = document.getElementById('card-unified-revenue');
 
-      if (descEl) descEl.style.display = (section === 'all' || section === 'descriptive') ? 'block' : 'none';
-      if (predEl) predEl.style.display = (section === 'all' || section === 'predictive') ? 'block' : 'none';
-      if (prescEl) prescEl.style.display = (section === 'all' || section === 'prescriptive') ? 'block' : 'none';
-      if (unifiedEl) unifiedEl.style.display = (section === 'all' || section === 'descriptive' || section === 'predictive') ? 'block' : 'none';
+        if (descEl) descEl.style.display = (section === 'all' || section === 'descriptive') ? 'block' : 'none';
+        if (predEl) predEl.style.display = (section === 'all' || section === 'predictive') ? 'block' : 'none';
+        if (prescEl) prescEl.style.display = (section === 'all' || section === 'prescriptive') ? 'block' : 'none';
+        if (unifiedEl) unifiedEl.style.display = (section === 'all' || section === 'descriptive' || section === 'predictive') ? 'block' : 'none';
 
-      container.querySelectorAll('.analytics-tab-btn').forEach(b => {
-        const isCurrent = b.getAttribute('data-section') === section;
-        b.style.background = isCurrent ? 'var(--brand-500)' : 'transparent';
-        b.style.color = isCurrent ? '#ffffff' : 'var(--dark-300)';
+        container.querySelectorAll('.analytics-tab-btn').forEach(b => {
+          const isCurrent = b.getAttribute('data-section') === section;
+          b.style.background = isCurrent ? 'var(--brand-500)' : 'transparent';
+          b.style.color = isCurrent ? '#ffffff' : 'var(--dark-300)';
+        });
       });
     });
-  });
 
-  // Attach Timeframe Pill click handlers (Daily / Weekly / Monthly in Asia/Manila)
-  container.querySelectorAll('.analytics-tf-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const tf = e.currentTarget.getAttribute('data-timeframe') || 'daily';
-      state.analyticsTimeframe = tf;
-      container.querySelectorAll('.analytics-tf-btn').forEach(b => {
-        const isCurrent = b.getAttribute('data-timeframe') === tf;
-        b.style.background = isCurrent ? 'var(--brand-500)' : 'transparent';
-        b.style.color = isCurrent ? '#ffffff' : 'var(--dark-300)';
+    // Attach Timeframe Pill click handlers (Daily / Weekly / Monthly in Asia/Manila)
+    container.querySelectorAll('.analytics-tf-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const tf = e.currentTarget.getAttribute('data-timeframe') || 'daily';
+        state.analyticsTimeframe = tf;
+        container.querySelectorAll('.analytics-tf-btn').forEach(b => {
+          const isCurrent = b.getAttribute('data-timeframe') === tf;
+          b.style.background = isCurrent ? 'var(--brand-500)' : 'transparent';
+          b.style.color = isCurrent ? '#ffffff' : 'var(--dark-300)';
+        });
+        initAnalyticsCharts(desc, pred, presc);
       });
+    });
+
+    // Attach Export CSV button
+    document.getElementById('btn-export-analytics-csv')?.addEventListener('click', () => {
+      openExportCsvModal();
+    });
+
+    // Attach Refresh button
+    document.getElementById('btn-refresh-analytics')?.addEventListener('click', () => {
+      renderAnalyticsTab();
+    });
+
+    // Render Charts with Chart.js
+    setTimeout(() => {
       initAnalyticsCharts(desc, pred, presc);
-    });
-  });
-
-  // Attach Export CSV button
-  document.getElementById('btn-export-analytics-csv')?.addEventListener('click', () => {
-    openExportCsvModal();
-  });
-
-  // Attach Refresh button
-  document.getElementById('btn-refresh-analytics')?.addEventListener('click', () => {
-    renderAnalyticsTab();
-  });
-
-  // Render Charts with Chart.js
-  setTimeout(() => {
-    initAnalyticsCharts(desc, pred, presc);
-  }, 60);
+    }, 60);
 
   } catch (err) {
     console.error('[Analytics Load Error]', err);
@@ -5694,309 +5694,309 @@ function initAnalyticsCharts(desc = {}, pred = {}, presc = {}) {
   try {
     if (typeof Chart === 'undefined') return;
 
-  // Destroy previous instances if any
-  if (state.charts.revenue) { state.charts.revenue.destroy(); state.charts.revenue = null; }
-  if (state.charts.sales) { state.charts.sales.destroy(); state.charts.sales = null; }
-  if (state.charts.products) { state.charts.products.destroy(); state.charts.products = null; }
+    // Destroy previous instances if any
+    if (state.charts.revenue) { state.charts.revenue.destroy(); state.charts.revenue = null; }
+    if (state.charts.sales) { state.charts.sales.destroy(); state.charts.sales = null; }
+    if (state.charts.products) { state.charts.products.destroy(); state.charts.products = null; }
 
-  const isLight = document.body.classList.contains('light-mode');
-  const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)';
-  const tickColor = isLight ? '#475569' : '#94a3b8';
+    const isLight = document.body.classList.contains('light-mode');
+    const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)';
+    const tickColor = isLight ? '#475569' : '#94a3b8';
 
-  // 1. Unified Revenue Timeline Chart: Descriptive Actuals (Solid) & Predictive Forecasts (Dashed)
-  const revenueCanvas = document.getElementById('revenueChart');
-  if (revenueCanvas) {
-    const tf = state.analyticsTimeframe || 'daily';
-    const salesSeries = tf === 'weekly'
-      ? (desc?.weekly_sales || desc?.daily_sales)
-      : (tf === 'monthly' ? (desc?.monthly_sales || desc?.daily_sales) : desc?.daily_sales);
-    const rawHistLabels = salesSeries?.labels ? salesSeries.labels : [];
-    const rawHistData = salesSeries?.data ? salesSeries.data : [];
+    // 1. Unified Revenue Timeline Chart: Descriptive Actuals (Solid) & Predictive Forecasts (Dashed)
+    const revenueCanvas = document.getElementById('revenueChart');
+    if (revenueCanvas) {
+      const tf = state.analyticsTimeframe || 'daily';
+      const salesSeries = tf === 'weekly'
+        ? (desc?.weekly_sales || desc?.daily_sales)
+        : (tf === 'monthly' ? (desc?.monthly_sales || desc?.daily_sales) : desc?.daily_sales);
+      const rawHistLabels = salesSeries?.labels ? salesSeries.labels : [];
+      const rawHistData = salesSeries?.data ? salesSeries.data : [];
 
-    // Slice last 14 historical intervals for clean readability
-    const histLabels = rawHistLabels.slice(-14);
-    const histData = rawHistData.slice(-14);
+      // Slice last 14 historical intervals for clean readability
+      const histLabels = rawHistLabels.slice(-14);
+      const histData = rawHistData.slice(-14);
 
-    const fLabels = (tf === 'daily' && pred && Array.isArray(pred.forecast_labels)) ? pred.forecast_labels : [];
-    const fData = (tf === 'daily' && pred && Array.isArray(pred.forecast_data)) ? pred.forecast_data : [];
+      const fLabels = (tf === 'daily' && pred && Array.isArray(pred.forecast_labels)) ? pred.forecast_labels : [];
+      const fData = (tf === 'daily' && pred && Array.isArray(pred.forecast_data)) ? pred.forecast_data : [];
 
-    const formatDate = (str) => {
-      if (!str) return '';
-      try {
-        const parts = str.split('-');
-        if (parts.length === 3) {
-          const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-          return `${mNames[parseInt(parts[1], 10) - 1]} ${parseInt(parts[2], 10)}`;
-        }
-      } catch (e) {}
-      return str;
-    };
+      const formatDate = (str) => {
+        if (!str) return '';
+        try {
+          const parts = str.split('-');
+          if (parts.length === 3) {
+            const mNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${mNames[parseInt(parts[1], 10) - 1]} ${parseInt(parts[2], 10)}`;
+          }
+        } catch (e) { }
+        return str;
+      };
 
-    let combinedLabels = [];
-    let actualSeries = [];
-    let forecastSeries = [];
-    const nHist = histLabels.length;
+      let combinedLabels = [];
+      let actualSeries = [];
+      let forecastSeries = [];
+      const nHist = histLabels.length;
 
-    if (nHist === 0 && fLabels.length === 0) {
-      combinedLabels = ['No Sales Recorded'];
-      actualSeries = [0];
-      forecastSeries = [0];
-    } else {
-      // Historical actual labels + Future forecast labels with distinct [Est] indicator
-      combinedLabels = [
-        ...histLabels.map(formatDate),
-        ...fLabels.map(l => `${formatDate(l)} [Est]`)
-      ];
-
-      // Actual Series: Verified Firestore data on historical dates, null on future forecast dates
-      actualSeries = [
-        ...histData,
-        ...fLabels.map(() => null)
-      ];
-
-      // Forecast Series: null on past dates, seamlessly bridged at the latest actual date, and forecasted values on future dates
-      if (fData.length > 0) {
-        if (nHist > 0) {
-          const lastActualVal = histData[nHist - 1];
-          const nullsBeforeBridge = Array(Math.max(0, nHist - 1)).fill(null);
-          forecastSeries = [...nullsBeforeBridge, lastActualVal, ...fData];
-        } else {
-          forecastSeries = [...fData];
-        }
+      if (nHist === 0 && fLabels.length === 0) {
+        combinedLabels = ['No Sales Recorded'];
+        actualSeries = [0];
+        forecastSeries = [0];
       } else {
-        forecastSeries = combinedLabels.map(() => null);
+        // Historical actual labels + Future forecast labels with distinct [Est] indicator
+        combinedLabels = [
+          ...histLabels.map(formatDate),
+          ...fLabels.map(l => `${formatDate(l)} [Est]`)
+        ];
+
+        // Actual Series: Verified Firestore data on historical dates, null on future forecast dates
+        actualSeries = [
+          ...histData,
+          ...fLabels.map(() => null)
+        ];
+
+        // Forecast Series: null on past dates, seamlessly bridged at the latest actual date, and forecasted values on future dates
+        if (fData.length > 0) {
+          if (nHist > 0) {
+            const lastActualVal = histData[nHist - 1];
+            const nullsBeforeBridge = Array(Math.max(0, nHist - 1)).fill(null);
+            forecastSeries = [...nullsBeforeBridge, lastActualVal, ...fData];
+          } else {
+            forecastSeries = [...fData];
+          }
+        } else {
+          forecastSeries = combinedLabels.map(() => null);
+        }
       }
-    }
 
-    const ctx = revenueCanvas.getContext('2d');
-    let actualGradient = null;
-    let forecastGradient = null;
-    if (ctx) {
-      actualGradient = ctx.createLinearGradient(0, 0, 0, 260);
-      actualGradient.addColorStop(0, 'rgba(16, 185, 129, 0.28)');
-      actualGradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+      const ctx = revenueCanvas.getContext('2d');
+      let actualGradient = null;
+      let forecastGradient = null;
+      if (ctx) {
+        actualGradient = ctx.createLinearGradient(0, 0, 0, 260);
+        actualGradient.addColorStop(0, 'rgba(16, 185, 129, 0.28)');
+        actualGradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
-      forecastGradient = ctx.createLinearGradient(0, 0, 0, 260);
-      forecastGradient.addColorStop(0, 'rgba(59, 130, 246, 0.12)');
-      forecastGradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
-    }
+        forecastGradient = ctx.createLinearGradient(0, 0, 0, 260);
+        forecastGradient.addColorStop(0, 'rgba(59, 130, 246, 0.12)');
+        forecastGradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+      }
 
-    const forecastMethodLabel = pred.has_sufficient_data
-      ? 'Forecasted Revenue (OLS Linear Regression)'
-      : (pred.is_preliminary
-        ? 'Forecasted Revenue (Preliminary Run-Rate Baseline)'
-        : 'Forecasted Revenue (Awaiting Sales Data)');
+      const forecastMethodLabel = pred.has_sufficient_data
+        ? 'Forecasted Revenue (OLS Linear Regression)'
+        : (pred.is_preliminary
+          ? 'Forecasted Revenue (Preliminary Run-Rate Baseline)'
+          : 'Forecasted Revenue (Awaiting Sales Data)');
 
-    state.charts.revenue = new Chart(revenueCanvas, {
-      type: 'line',
-      data: {
-        labels: combinedLabels,
-        datasets: [
-          {
-            label: 'Actual Revenue (Verified Firestore)',
-            data: actualSeries,
-            borderColor: '#10b981',
-            borderWidth: 2.8,
-            borderDash: [],
-            backgroundColor: actualGradient || 'rgba(16, 185, 129, 0.08)',
-            fill: true,
-            tension: 0.25,
-            pointBackgroundColor: '#10b981',
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 1.5,
-            pointRadius: 4.5,
-            pointHoverRadius: 7,
-            pointStyle: 'circle',
-            spanGaps: false
-          },
-          {
-            label: forecastMethodLabel,
-            data: forecastSeries,
-            borderColor: '#3b82f6',
-            borderWidth: 2.5,
-            borderDash: [6, 6],
-            backgroundColor: forecastGradient || 'rgba(59, 130, 246, 0.04)',
-            fill: false,
-            tension: 0.25,
-            pointBackgroundColor: '#3b82f6',
-            pointBorderColor: '#ffffff',
-            pointBorderWidth: 1.5,
-            pointRadius: 5,
-            pointHoverRadius: 7.5,
-            pointStyle: 'rectRot',
-            spanGaps: false
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false
-        },
-        plugins: {
-          legend: {
-            display: true,
-            position: 'top',
-            align: 'end',
-            labels: {
-              color: isLight ? '#334155' : '#cbd5e1',
-              usePointStyle: true,
-              pointStyleWidth: 12,
-              padding: 14,
-              font: {
-                size: 11,
-                weight: '600',
-                family: 'Inter, sans-serif'
-              }
-            }
-          },
-          tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
-            titleColor: '#ffffff',
-            bodyColor: '#cbd5e1',
-            borderColor: 'rgba(255, 255, 255, 0.12)',
-            borderWidth: 1,
-            padding: 10,
-            callbacks: {
-              label: function(context) {
-                const val = context.raw;
-                if (val === null || val === undefined) return null;
-                const formatted = `₱${Number(val).toFixed(2)}`;
-                if (context.datasetIndex === 0) {
-                  return ` Actual Revenue: ${formatted}`;
-                } else {
-                  if (context.dataIndex === (nHist - 1) && nHist > 0) {
-                    return ` Baseline Bridge: ${formatted}`;
-                  }
-                  const tag = pred.has_sufficient_data ? 'OLS Regression' : (pred.is_preliminary ? 'Run-Rate Baseline' : 'Projection');
-                  return ` Forecast (${tag}): ${formatted}`;
-                }
-              },
-              afterBody: function(tooltipItems) {
-                if (!tooltipItems || tooltipItems.length === 0) return '';
-                const idx = tooltipItems[0].dataIndex;
-                if (idx >= nHist && nHist > 0) {
-                  return ['\nForecast: Projected estimate based on historical trends.'];
-                }
-                return '';
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            grid: { color: gridColor },
-            ticks: {
-              color: tickColor,
-              font: { size: 11 }
-            }
-          },
-          y: {
-            beginAtZero: true,
-            ticks: {
-              color: tickColor,
-              font: { size: 11 },
-              callback: (value) => `₱${value}`
+      state.charts.revenue = new Chart(revenueCanvas, {
+        type: 'line',
+        data: {
+          labels: combinedLabels,
+          datasets: [
+            {
+              label: 'Actual Revenue (Verified Firestore)',
+              data: actualSeries,
+              borderColor: '#10b981',
+              borderWidth: 2.8,
+              borderDash: [],
+              backgroundColor: actualGradient || 'rgba(16, 185, 129, 0.08)',
+              fill: true,
+              tension: 0.25,
+              pointBackgroundColor: '#10b981',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 1.5,
+              pointRadius: 4.5,
+              pointHoverRadius: 7,
+              pointStyle: 'circle',
+              spanGaps: false
             },
-            grid: { color: gridColor }
-          }
-        }
-      }
-    });
-  }
-
-  // 2. Sales Chart from Peak Hours or Daily Sales
-  const salesCanvas = document.getElementById('salesChart');
-  if (salesCanvas) {
-    let hours = [];
-    let salesData = [];
-
-    if (desc.peak_hours && desc.peak_hours.length > 0) {
-      // Filter shop operating hours (7am to 10pm)
-      const filteredHours = desc.peak_hours.filter(h => h.hour >= 7 && h.hour <= 22);
-      hours = filteredHours.map(h => h.label);
-      salesData = filteredHours.map(h => h.orders);
-    } else {
-      hours = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'];
-      salesData = [0, 0, 0, 0, 0, 0, 0, 0];
-    }
-
-    state.charts.sales = new Chart(salesCanvas, {
-      type: 'bar',
-      data: {
-        labels: hours,
-        datasets: [{
-          label: 'Orders',
-          data: salesData,
-          backgroundColor: '#dc2626',
-          borderRadius: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false }
+            {
+              label: forecastMethodLabel,
+              data: forecastSeries,
+              borderColor: '#3b82f6',
+              borderWidth: 2.5,
+              borderDash: [6, 6],
+              backgroundColor: forecastGradient || 'rgba(59, 130, 246, 0.04)',
+              fill: false,
+              tension: 0.25,
+              pointBackgroundColor: '#3b82f6',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 1.5,
+              pointRadius: 5,
+              pointHoverRadius: 7.5,
+              pointStyle: 'rectRot',
+              spanGaps: false
+            }
+          ]
         },
-        scales: {
-          x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#64748b' } },
-          y: { 
-            beginAtZero: true,
-            ticks: { color: '#64748b', stepSize: 1 }, 
-            grid: { color: 'rgba(0,0,0,0.06)' } 
-          }
-        }
-      }
-    });
-  }
-
-  // 3. Product Revenue Share Chart
-  const productCanvas = document.getElementById('productChart');
-  if (productCanvas) {
-    let labels = [];
-    let revValues = [];
-    let bgColors = ['#10b981', '#3b82f6', '#dc2626', '#a855f7', '#eab308', '#ec4899', '#06b6d4'];
-
-    const topProductsWithRev = (desc.top_products || []).filter(p => Number(p.revenue || 0) > 0);
-
-    if (topProductsWithRev.length > 0) {
-      labels = topProductsWithRev.map(p => `${p.name} (₱${Number(p.revenue).toFixed(2)})`);
-      revValues = topProductsWithRev.map(p => Number(p.revenue));
-    } else if (desc.top_products && desc.top_products.length > 0) {
-      labels = desc.top_products.map(p => `${p.name} (${p.quantity} sold)`);
-      revValues = desc.top_products.map(p => p.quantity);
-    } else {
-      labels = ['No Completed Sales Recorded'];
-      revValues = [1];
-      bgColors = ['rgba(148, 163, 184, 0.2)'];
-    }
-
-    state.charts.products = new Chart(productCanvas, {
-      type: 'doughnut',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: revValues,
-          backgroundColor: bgColors.slice(0, revValues.length),
-          borderWidth: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom', labels: { color: '#64748b', boxWidth: 12 } },
-          tooltip: {
-            callbacks: {
-              label: (context) => ` ${context.label}`
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              align: 'end',
+              labels: {
+                color: isLight ? '#334155' : '#cbd5e1',
+                usePointStyle: true,
+                pointStyleWidth: 12,
+                padding: 14,
+                font: {
+                  size: 11,
+                  weight: '600',
+                  family: 'Inter, sans-serif'
+                }
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              titleColor: '#ffffff',
+              bodyColor: '#cbd5e1',
+              borderColor: 'rgba(255, 255, 255, 0.12)',
+              borderWidth: 1,
+              padding: 10,
+              callbacks: {
+                label: function (context) {
+                  const val = context.raw;
+                  if (val === null || val === undefined) return null;
+                  const formatted = `₱${Number(val).toFixed(2)}`;
+                  if (context.datasetIndex === 0) {
+                    return ` Actual Revenue: ${formatted}`;
+                  } else {
+                    if (context.dataIndex === (nHist - 1) && nHist > 0) {
+                      return ` Baseline Bridge: ${formatted}`;
+                    }
+                    const tag = pred.has_sufficient_data ? 'OLS Regression' : (pred.is_preliminary ? 'Run-Rate Baseline' : 'Projection');
+                    return ` Forecast (${tag}): ${formatted}`;
+                  }
+                },
+                afterBody: function (tooltipItems) {
+                  if (!tooltipItems || tooltipItems.length === 0) return '';
+                  const idx = tooltipItems[0].dataIndex;
+                  if (idx >= nHist && nHist > 0) {
+                    return ['\nForecast: Projected estimate based on historical trends.'];
+                  }
+                  return '';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: gridColor },
+              ticks: {
+                color: tickColor,
+                font: { size: 11 }
+              }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: tickColor,
+                font: { size: 11 },
+                callback: (value) => `₱${value}`
+              },
+              grid: { color: gridColor }
             }
           }
         }
+      });
+    }
+
+    // 2. Sales Chart from Peak Hours or Daily Sales
+    const salesCanvas = document.getElementById('salesChart');
+    if (salesCanvas) {
+      let hours = [];
+      let salesData = [];
+
+      if (desc.peak_hours && desc.peak_hours.length > 0) {
+        // Filter shop operating hours (7am to 10pm)
+        const filteredHours = desc.peak_hours.filter(h => h.hour >= 7 && h.hour <= 22);
+        hours = filteredHours.map(h => h.label);
+        salesData = filteredHours.map(h => h.orders);
+      } else {
+        hours = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'];
+        salesData = [0, 0, 0, 0, 0, 0, 0, 0];
       }
-    });
-  }
+
+      state.charts.sales = new Chart(salesCanvas, {
+        type: 'bar',
+        data: {
+          labels: hours,
+          datasets: [{
+            label: 'Orders',
+            data: salesData,
+            backgroundColor: '#dc2626',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#64748b' } },
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#64748b', stepSize: 1 },
+              grid: { color: 'rgba(0,0,0,0.06)' }
+            }
+          }
+        }
+      });
+    }
+
+    // 3. Product Revenue Share Chart
+    const productCanvas = document.getElementById('productChart');
+    if (productCanvas) {
+      let labels = [];
+      let revValues = [];
+      let bgColors = ['#10b981', '#3b82f6', '#dc2626', '#a855f7', '#eab308', '#ec4899', '#06b6d4'];
+
+      const topProductsWithRev = (desc.top_products || []).filter(p => Number(p.revenue || 0) > 0);
+
+      if (topProductsWithRev.length > 0) {
+        labels = topProductsWithRev.map(p => `${p.name} (₱${Number(p.revenue).toFixed(2)})`);
+        revValues = topProductsWithRev.map(p => Number(p.revenue));
+      } else if (desc.top_products && desc.top_products.length > 0) {
+        labels = desc.top_products.map(p => `${p.name} (${p.quantity} sold)`);
+        revValues = desc.top_products.map(p => p.quantity);
+      } else {
+        labels = ['No Completed Sales Recorded'];
+        revValues = [1];
+        bgColors = ['rgba(148, 163, 184, 0.2)'];
+      }
+
+      state.charts.products = new Chart(productCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: revValues,
+            backgroundColor: bgColors.slice(0, revValues.length),
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#64748b', boxWidth: 12 } },
+            tooltip: {
+              callbacks: {
+                label: (context) => ` ${context.label}`
+              }
+            }
+          }
+        }
+      });
+    }
   } catch (chartErr) {
     console.error('[Analytics Chart Error]', chartErr);
   }
@@ -6013,7 +6013,7 @@ async function renderSimulatorTab() {
   try {
     const res = await api.getQueueDisplay();
     displayData = res.data;
-  } catch (e) {}
+  } catch (e) { }
 
   container.innerHTML = `
     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -6096,7 +6096,7 @@ async function updateSimulatorOLED() {
     const oledNext = document.getElementById('sim-oled-next');
     if (oledNow) oledNow.textContent = `#${data.now_serving || '—'}`;
     if (oledNext) oledNext.textContent = `#${data.next_queue || 1}`;
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function appendSerialLog(msg, color = '#4ade80') {
