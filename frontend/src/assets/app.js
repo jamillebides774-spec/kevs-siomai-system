@@ -2616,7 +2616,7 @@ function renderCompletedCards(filtered) {
               ${(order.items && order.items.length) ? order.items.map(i => {
                 const qty = i.quantity || i.qty || 1;
                 const name = i.product_name || i.name || 'Siomai';
-                const unit = i.unit || (name.toLowerCase().includes('royal') ? 'bottles' : (name.toLowerCase().includes('coke') || name.toLowerCase().includes('sprite')) ? 'cans' : (name.toLowerCase().includes('chilli') || name.toLowerCase().includes('soy') || name.toLowerCase().includes('calamansi')) ? 'packs' : 'pcs');
+                const unit = i.unit || (name.toLowerCase().includes('royal') ? 'bottles' : (name.toLowerCase().includes('coke') || name.toLowerCase().includes('sprite')) ? 'bottles' : (name.toLowerCase().includes('chilli') || name.toLowerCase().includes('soy') || name.toLowerCase().includes('calamansi')) ? 'packs' : 'pcs');
                 const price = Number(i.price || 0).toFixed(2);
                 const subtotal = Number(i.subtotal || (i.price * qty) || 0).toFixed(2);
                 const img = i.image_url || getProductImageUrl(name);
@@ -2824,7 +2824,7 @@ function openReceiptModal(order) {
               ${(order.items && order.items.length) ? order.items.map(i => {
                 const qty = Number(i.quantity ?? i.qty ?? 1);
                 const name = i.product_name || i.name || 'Siomai';
-                const unit = i.unit || (name.toLowerCase().includes('royal') ? 'bottles' : (name.toLowerCase().includes('coke') || name.toLowerCase().includes('sprite')) ? 'cans' : (name.toLowerCase().includes('chilli') || name.toLowerCase().includes('soy') || name.toLowerCase().includes('calamansi')) ? 'packs' : 'pcs');
+                const unit = i.unit || (name.toLowerCase().includes('royal') ? 'bottles' : (name.toLowerCase().includes('coke') || name.toLowerCase().includes('sprite')) ? 'bottles' : (name.toLowerCase().includes('chilli') || name.toLowerCase().includes('soy') || name.toLowerCase().includes('calamansi')) ? 'packs' : 'pcs');
                 const rawUnitPrice = Number(i.unit_price ?? i.price ?? 0);
                 const price = rawUnitPrice.toFixed(2);
                 const subtotal = Number(i.subtotal ?? (rawUnitPrice * qty) ?? 0).toFixed(2);
@@ -3343,7 +3343,6 @@ function openAddProductModal() {
                 <select id="prod-unit" class="input">
                   <option value="pcs" selected>pcs (Pieces)</option>
                   <option value="bottles">bottles (Bottles)</option>
-                  <option value="cans">cans (Cans)</option>
                   <option value="packs">packs (Packets)</option>
                   <option value="servings">servings (Servings)</option>
                 </select>
@@ -3532,7 +3531,7 @@ function openAddProductModal() {
 function openEditProductModal(product) {
   if (!product) return;
   const modalContainer = document.getElementById('modal-container');
-  const initialUnit = product.unit || (product.category === 'Drinks' ? (product.name.toLowerCase().includes('royal') ? 'bottles' : 'cans') : (product.category === 'Add-ons' ? 'packs' : 'pcs'));
+  const initialUnit = product.unit || (product.category === 'Drinks' ? 'bottles' : (product.category === 'Add-ons' ? 'packs' : 'pcs'));
 
   modalContainer.innerHTML = `
     <div class="modal-backdrop" id="edit-prod-modal-backdrop">
@@ -3568,7 +3567,6 @@ function openEditProductModal(product) {
                 <select id="edit-prod-unit" class="input">
                   <option value="pcs" ${initialUnit === 'pcs' ? 'selected' : ''}>pcs (Pieces)</option>
                   <option value="bottles" ${initialUnit === 'bottles' ? 'selected' : ''}>bottles (Bottles)</option>
-                  <option value="cans" ${initialUnit === 'cans' ? 'selected' : ''}>cans (Cans)</option>
                   <option value="packs" ${initialUnit === 'packs' ? 'selected' : ''}>packs (Packets)</option>
                   <option value="servings" ${initialUnit === 'servings' ? 'selected' : ''}>servings (Servings)</option>
                 </select>

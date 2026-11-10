@@ -32,13 +32,13 @@ PRODUCT_CATALOGUE = [
          description='Signature HotSpot Siomai – ₱10 per piece',
          image_url='/images/hotspot_siomai.jpg'),
     # Drinks
-    dict(name='Coke',             category='Drinks',  price=25.0,  stock=48,  max_stock=144, unit='cans',
+    dict(name='Coke',             category='Drinks',  price=25.0,  stock=48,  max_stock=144, unit='bottles',
          description='Ice-cold Coca-Cola',
          image_url='/images/coke.jpg'),
     dict(name='Royal',            category='Drinks',  price=25.0,  stock=48,  max_stock=144, unit='bottles',
          description='Ice-cold Royal Tru-Orange (Bottle)',
          image_url='/images/royal.jpg'),
-    dict(name='Sprite',           category='Drinks',  price=25.0,  stock=48,  max_stock=144, unit='cans',
+    dict(name='Sprite',           category='Drinks',  price=25.0,  stock=48,  max_stock=144, unit='bottles',
          description='Ice-cold Sprite',
          image_url='/images/sprite.jpg'),
     # Add-ons (condiments – charged separately only if you want)
@@ -351,6 +351,14 @@ def _seed_initial_data():
         if not Product.query.filter_by(name=cat_item['name']).first():
             db.session.add(Product(**cat_item))
     db.session.flush()
+
+    # ── Ensure drinks use unit 'bottles' ───────────────────────────────────────
+    try:
+        db.session.execute(text("UPDATE products SET unit = 'bottles' WHERE LOWER(unit) = 'cans' OR (category = 'Drinks' AND LOWER(unit) != 'bottles')"))
+        db.session.commit()
+    except Exception as ue:
+        db.session.rollback()
+        print(f"⚠️ [Product Unit Update Warning]: {ue}", flush=True)
 
     # ── Default Online Receiving Payment Accounts ──────────────────────────────
     if PaymentAccount.query.count() == 0:

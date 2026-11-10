@@ -4354,7 +4354,6 @@ function openAddProductModal() {
                 <select id="prod-unit" class="input">
                   <option value="pcs" selected>pcs (Pieces)</option>
                   <option value="bottles">bottles (Bottles)</option>
-                  <option value="bottles">bottles (bottles)</option>
                   <option value="packs">packs (Packets)</option>
                   <option value="servings">servings (Servings)</option>
                 </select>
@@ -4579,7 +4578,6 @@ function openEditProductModal(product) {
                 <select id="edit-prod-unit" class="input">
                   <option value="pcs" ${initialUnit === 'pcs' ? 'selected' : ''}>pcs (Pieces)</option>
                   <option value="bottles" ${initialUnit === 'bottles' ? 'selected' : ''}>bottles (Bottles)</option>
-                  <option value="bottles" ${initialUnit === 'bottles' ? 'selected' : ''}>bottles (bottles)</option>
                   <option value="packs" ${initialUnit === 'packs' ? 'selected' : ''}>packs (Packets)</option>
                   <option value="servings" ${initialUnit === 'servings' ? 'selected' : ''}>servings (Servings)</option>
                 </select>

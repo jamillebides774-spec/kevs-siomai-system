@@ -42,9 +42,9 @@ def migrate():
     print("📦 Migrating products...")
     default_products = [
         {'id': 1, 'name': 'HotSpot Siomai', 'category': 'Siomai', 'price': 10.0, 'stock': 200, 'max_stock': 500, 'unit': 'pcs', 'description': 'Signature HotSpot Siomai – ₱10 per piece', 'image_url': '/images/hotspot_siomai.jpg', 'is_active': True},
-        {'id': 2, 'name': 'Coke', 'category': 'Drinks', 'price': 25.0, 'stock': 48, 'max_stock': 144, 'unit': 'cans', 'description': 'Ice-cold Coca-Cola', 'image_url': '/images/coke.jpg', 'is_active': True},
+        {'id': 2, 'name': 'Coke', 'category': 'Drinks', 'price': 25.0, 'stock': 48, 'max_stock': 144, 'unit': 'bottles', 'description': 'Ice-cold Coca-Cola', 'image_url': '/images/coke.jpg', 'is_active': True},
         {'id': 3, 'name': 'Royal', 'category': 'Drinks', 'price': 25.0, 'stock': 48, 'max_stock': 144, 'unit': 'bottles', 'description': 'Ice-cold Royal Tru-Orange (Bottle)', 'image_url': '/images/royal.jpg', 'is_active': True},
-        {'id': 4, 'name': 'Sprite', 'category': 'Drinks', 'price': 25.0, 'stock': 48, 'max_stock': 144, 'unit': 'cans', 'description': 'Ice-cold Sprite', 'image_url': '/images/sprite.jpg', 'is_active': True},
+        {'id': 4, 'name': 'Sprite', 'category': 'Drinks', 'price': 25.0, 'stock': 48, 'max_stock': 144, 'unit': 'bottles', 'description': 'Ice-cold Sprite', 'image_url': '/images/sprite.jpg', 'is_active': True},
         {'id': 5, 'name': 'Chilli Garlic', 'category': 'Add-ons', 'price': 0.0, 'stock': 100, 'max_stock': 200, 'unit': 'packs', 'description': 'House-made chilli garlic sauce', 'image_url': '/images/chilli_garlic.jpg', 'is_active': True},
         {'id': 6, 'name': 'Soy Sauce', 'category': 'Add-ons', 'price': 0.0, 'stock': 100, 'max_stock': 200, 'unit': 'packs', 'description': 'Premium soy sauce packet', 'image_url': '/images/soy_sauce.jpg', 'is_active': True},
         {'id': 7, 'name': 'Calamansi', 'category': 'Add-ons', 'price': 0.0, 'stock': 100, 'max_stock': 200, 'unit': 'packs', 'description': 'Fresh calamansi packet', 'image_url': '/images/calamansi.jpg', 'is_active': True},

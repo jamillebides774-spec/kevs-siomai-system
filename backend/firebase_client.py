@@ -1163,6 +1163,10 @@ def hydrate_products_from_firestore(app):
                         fs_active = existing.is_active
                     existing.is_active = fs_active
 
+                    # Ensure drinks always use 'bottles' unit
+                    if (existing.category or '').lower() == 'drinks' or (existing.unit or '').lower() == 'cans':
+                        existing.unit = 'bottles'
+
             sqldb.session.commit()
 
             for prod in Product.query.order_by(Product.id.asc()).all():
