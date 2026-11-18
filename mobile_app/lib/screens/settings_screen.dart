@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/shop_provider.dart';
 import '../services/offline_service.dart';
 import '../services/api_service.dart';
@@ -28,6 +30,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadProfile();
   }
 
+  static const String _privacyPolicyUrl = 'https://kevs-siomai.onrender.com/privacy-policy';
+  static const String _supportPhone = '09212961820';
+
+  Future<void> _openPrivacyPolicy() async {
+    final uri = Uri.parse(_privacyPolicyUrl);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open Privacy Policy link. Please check your internet connection.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _callSupport() async {
+    final uri = Uri(scheme: 'tel', path: _supportPhone);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _loadProfile() async {
     final profile = await OfflineService.getCustomerProfile();
     final currentUrl = await OfflineService.getBaseUrl();
@@ -40,7 +74,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _isLoading = false;
       });
     }
-    _runHealthCheck(currentUrl);
+    if (kDebugMode) {
+      _runHealthCheck(currentUrl);
+    }
   }
 
   Future<void> _runHealthCheck(String url) async {
@@ -449,7 +485,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // ── Server & Network Connection Card ──
+                      // ── Server & Network Connection Card (Debug Builds Only) ──
+                      if (kDebugMode) ...[
                       Card(
                         color: cardBg,
                         elevation: isDark ? 2 : 1,
@@ -588,7 +625,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
+                      ],
+                      const SizedBox(height: 8),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFDC2626),
@@ -604,19 +643,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         onPressed: _saveProfile,
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 20),
 
-                      // Proposal / System Info
+                      // ── Legal, Privacy & Support Card ──
+                      Card(
+                        color: cardBg,
+                        elevation: isDark ? 2 : 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: cardBorder, width: 1),
+                        ),
+                        child: Column(
+                          children: [
+                            ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: const Color(0xFFDC2626).withValues(alpha: 0.15),
+                                child: const Icon(Icons.privacy_tip_outlined, color: Color(0xFFDC2626)),
+                              ),
+                              title: Text(
+                                'Privacy Policy',
+                                style: TextStyle(fontWeight: FontWeight.w700, color: textPrimary),
+                              ),
+                              subtitle: Text(
+                                'How we handle your order & contact information',
+                                style: TextStyle(fontSize: 12, color: textSecondary),
+                              ),
+                              trailing: Icon(Icons.open_in_new_rounded, size: 18, color: textMuted),
+                              onTap: _openPrivacyPolicy,
+                            ),
+                            Divider(height: 1, indent: 16, endIndent: 16, color: cardBorder),
+                            ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: const Color(0xFFDC2626).withValues(alpha: 0.15),
+                                child: const Icon(Icons.support_agent_rounded, color: Color(0xFFDC2626)),
+                              ),
+                              title: Text(
+                                'Customer Support',
+                                style: TextStyle(fontWeight: FontWeight.w700, color: textPrimary),
+                              ),
+                              subtitle: Text(
+                                '0921-296-1820 • 070 Batisan, Gatid, Santa Cruz, Laguna',
+                                style: TextStyle(fontSize: 12, color: textSecondary),
+                              ),
+                              trailing: Icon(Icons.phone_rounded, size: 18, color: textMuted),
+                              onTap: _callSupport,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+
+                      // App Info
                       Center(
                         child: Column(
                           children: [
                             Text(
-                              'KEVS SIOMAI: Order & Unified Real-Time Queue System',
+                              'KEVS SIOMAI — Order & Real-Time Queue',
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textSecondary),
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              'Laguna University • Santa Cruz, Laguna',
+                              'Version 1.0.0 • Santa Cruz, Laguna',
                               style: TextStyle(fontSize: 11, color: textMuted),
                             ),
                           ],

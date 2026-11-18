@@ -28,8 +28,8 @@ _app_instance = None
 # ──────────────────────────────────────────────────────────────
 PRODUCT_CATALOGUE = [
     # Main item
-    dict(name='HotSpot Siomai',   category='Siomai',  price=10.0,  stock=200, max_stock=500, unit='pcs',
-         description='Signature HotSpot Siomai – ₱10 per piece',
+    dict(name='HotSpot Siomai',   category='Siomai',  price=10.0,  stock=200, max_stock=500, unit='packs',
+         description='Signature HotSpot Siomai',
          image_url='/images/hotspot_siomai.jpg'),
     # Drinks
     dict(name='Coke',             category='Drinks',  price=25.0,  stock=48,  max_stock=144, unit='bottles',
@@ -48,8 +48,8 @@ PRODUCT_CATALOGUE = [
     dict(name='Soy Sauce',        category='Add-ons', price=0.0,   stock=100, max_stock=200, unit='packs',
          description='Premium soy sauce packet',
          image_url='/images/soy_sauce.jpg'),
-    dict(name='Calamansi',        category='Add-ons', price=0.0,   stock=100, max_stock=200, unit='packs',
-         description='Fresh calamansi packet',
+    dict(name='Calamansi',        category='Add-ons', price=0.0,   stock=100, max_stock=200, unit='piece',
+         description='Fresh calamansi piece',
          image_url='/images/calamansi.jpg'),
 ]
 
@@ -169,6 +169,15 @@ def create_app(test_config=None):
         resp = send_from_directory(img_dir, filename)
         resp.headers['Cache-Control'] = 'no-cache, must-revalidate, max-age=0'
         return resp
+
+    # ── Privacy Policy Page (Required for Google Play Store) ──────────────────
+    @app.route('/privacy-policy')
+    @app.route('/privacy-policy/')
+    def serve_privacy_policy():
+        sf = app.static_folder
+        if sf and os.path.isfile(os.path.join(sf, 'privacy-policy.html')):
+            return send_from_directory(sf, 'privacy-policy.html')
+        return '<h2>Privacy Policy not found.</h2>', 404
 
     # ── Mobile App Static File Server (/mobile) ───────────────────────────────
     import mimetypes
@@ -352,9 +361,12 @@ def _seed_initial_data():
             db.session.add(Product(**cat_item))
     db.session.flush()
 
-    # ── Ensure drinks use unit 'bottles' ───────────────────────────────────────
+    # ── Ensure product units match Kev's Siomai standard packaging ─────────────
     try:
-        db.session.execute(text("UPDATE products SET unit = 'bottles' WHERE LOWER(unit) = 'cans' OR (category = 'Drinks' AND LOWER(unit) != 'bottles')"))
+        db.session.execute(text("UPDATE products SET unit = 'packs' WHERE LOWER(name) LIKE '%siomai%'"))
+        db.session.execute(text("UPDATE products SET unit = 'bottles' WHERE LOWER(name) IN ('coke', 'sprite', 'royal') OR category = 'Drinks'"))
+        db.session.execute(text("UPDATE products SET unit = 'piece' WHERE LOWER(name) LIKE '%calamansi%'"))
+        db.session.execute(text("UPDATE products SET unit = 'packs' WHERE LOWER(name) LIKE '%soy%' OR LOWER(name) LIKE '%chilli%' OR LOWER(name) LIKE '%chili%'"))
         db.session.commit()
     except Exception as ue:
         db.session.rollback()

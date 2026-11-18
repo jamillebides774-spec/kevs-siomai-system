@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product.dart';
 import '../models/order.dart';
@@ -51,16 +51,18 @@ class OfflineService {
       } catch (_) {}
     }
 
-    // 2. User manual override (saved via Settings screen on Native Mobile APK)
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getString(_keyBackendUrl);
-      if (saved != null && saved.trim().isNotEmpty) {
-        return saved.trim().replaceAll(RegExp(r'/+$'), '');
-      }
-    } catch (_) {}
+    // 2. Developer manual override (debug builds only — never used in Play Store release builds)
+    if (kDebugMode) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final saved = prefs.getString(_keyBackendUrl);
+        if (saved != null && saved.trim().isNotEmpty) {
+          return saved.trim().replaceAll(RegExp(r'/+$'), '');
+        }
+      } catch (_) {}
+    }
 
-    // 3. Native mobile app (Android / iOS) default fallback
+    // 3. Native mobile app (Android / iOS) production HTTPS backend
     return 'https://kevs-siomai.onrender.com/api';
   }
 

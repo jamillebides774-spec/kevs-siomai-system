@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — KEVS SIOMAI</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --surface: #1e1e1e;
+      --border: #2e2e2e;
+      --accent: #dc2626;
+      --text: #f5f5f5;
+      --muted: #a3a3a3;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      padding: 24px 16px 64px;
+    }
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+    header {
+      background: linear-gradient(135deg, #1e1e1e 0%, #7f1d1d 100%);
+      border: 1px solid rgba(220, 38, 38, 0.4);
+      border-radius: 18px;
+      padding: 28px 24px;
+      margin-bottom: 24px;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(220, 38, 38, 0.25);
+      border: 1px solid var(--accent);
+      color: #fca5a5;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      color: #d4d4d4;
+      font-size: 14px;
+    }
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px 24px;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h2::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 18px;
+      background: var(--accent);
+      border-radius: 4px;
+    }
+    p {
+      color: #d4d4d4;
+      font-size: 14.5px;
+      margin-bottom: 10px;
+    }
+    p:last-child { margin-bottom: 0; }
+    ul {
+      padding-left: 20px;
+      color: #d4d4d4;
+      font-size: 14.5px;
+      margin-top: 6px;
+    }
+    li { margin-bottom: 6px; }
+    strong { color: #ffffff; }
+    a { color: #f87171; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12.5px;
+      margin-top: 28px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">Official Privacy Policy</span>
+      <h1>KEVS SIOMAI Mobile App</h1>
+      <p class="subtitle">Effective Date: November 2026 &bull; Package ID: com.bosskevs.mobile_app</p>
+    </header>
+
+    <section>
+      <h2>1. Introduction</h2>
+      <p>
+        <strong>KEVS SIOMAI</strong> ("we", "our", or "us") respects your privacy and is committed to protecting the personal information you provide when using the <strong>KEVS SIOMAI</strong> mobile application and web ordering platform. This Privacy Policy explains what data we collect, how we use it, and your rights regarding your information.
+      </p>
+    </section>
+
+    <section>
+      <h2>2. Information We Collect</h2>
+      <p>We only collect information that you voluntarily provide in order to place, verify, and fulfill your food orders:</p>
+      <ul>
+        <li><strong>Customer Name:</strong> Used to identify your order and call your name/queue number when ready.</li>
+        <li><strong>Contact Number:</strong> Used to contact you regarding order updates, pickup availability, or delivery coordination.</li>
+        <li><strong>Delivery Address (Optional):</strong> Collected only if you choose delivery fulfillment or save a default address in your local profile settings.</li>
+        <li><strong>Order &amp; Payment Details:</strong> Items ordered, fulfillment preference (Pickup or Delivery), order notes, and—if paying via GCash—your submitted payment reference number or payment confirmation details for manual verification by our cashier.</li>
+        <li><strong>Local App Preferences:</strong> Theme mode (Light/Dark) and saved profile fields stored locally on your device using Android SharedPreferences.</li>
+      </ul>
+      <p>
+        We do <strong>not</strong> collect background GPS location, contacts, photos/media (unless you explicitly upload a receipt if supported), microphone audio, or advertising IDs.
+      </p>
+    </section>
+
+    <section>
+      <h2>3. How We Use Your Information</h2>
+      <ul>
+        <li>To process, prepare, and fulfill your pickup or delivery orders at KEVS SIOMAI.</li>
+        <li>To display real-time queue status and order progress updates.</li>
+        <li>To verify cashless (GCash) payment transactions.</li>
+        <li>To auto-fill your saved checkout details locally on your device for faster repeat ordering.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>4. Data Storage, Security &amp; Third-Party Services</h2>
+      <p>
+        All network communication between the KEVS SIOMAI mobile app and our servers is encrypted in transit using <strong>HTTPS / TLS</strong>. Order records are stored securely on our cloud backend hosted on <strong>Render</strong> and synchronized with <strong>Google Cloud Firestore</strong> to provide real-time queue tracking.
+      </p>
+      <p>
+        We do <strong>not</strong> sell, rent, or share your personal information with third-party advertisers, data brokers, or marketing networks.
+      </p>
+    </section>
+
+    <section>
+      <h2>5. Data Retention &amp; Deletion Requests</h2>
+      <p>
+        Order records are retained only as long as necessary for store operations, accounting, and order support. Local profile preferences stored on your device can be cleared at any time by clearing the app's storage or uninstalling the application.
+      </p>
+      <p>
+        To request deletion of any order records associated with your name or contact number, please contact us directly using the details below. We will process deletion requests promptly.
+      </p>
+    </section>
+
+    <section>
+      <h2>6. Children's Privacy</h2>
+      <p>
+        Our ordering service is intended for general audiences and does not knowingly collect personal data from children under 13 years of age without parental consent.
+      </p>
+    </section>
+
+    <section>
+      <h2>7. Changes to This Policy</h2>
+      <p>
+        We may update this Privacy Policy from time to time to reflect improvements to our services or legal requirements. Any updates will be posted on this page with an updated effective date.
+      </p>
+    </section>
+
+    <section>
+      <h2>8. Contact Us</h2>
+      <p>If you have questions about this Privacy Policy or want to request data deletion, please reach out to us:</p>
+      <ul>
+        <li><strong>Store Name:</strong> KEVS SIOMAI</li>
+        <li><strong>Address:</strong> 070 Batisan, Gatid, Santa Cruz, Laguna, Philippines</li>
+        <li><strong>Phone / Hotline:</strong> <a href="tel:09212961820">0921-296-1820</a></li>
+        <li><strong>Store Hours:</strong> Open Daily, 4:00 PM – 12:00 AM</li>
+      </ul>
+    </section>
+
+    <footer>
+      &copy; 2026 KEVS SIOMAI &bull; Santa Cruz, Laguna. All rights reserved.
+    </footer>
+  </div>
+</body>
+</html>

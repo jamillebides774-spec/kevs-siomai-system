@@ -322,6 +322,16 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+export function getProductUnit(productName = '', fallbackUnit = '') {
+  const n = (productName || '').toLowerCase();
+  if (n.includes('siomai') || n.includes('dumpling')) return 'packs';
+  if (n.includes('coke') || n.includes('sprite') || n.includes('royal')) return 'bottles';
+  if (n.includes('calamansi')) return 'piece';
+  if (n.includes('soy') || n.includes('chilli') || n.includes('chili') || n.includes('garlic')) return 'packs';
+  if (fallbackUnit && fallbackUnit !== 'pcs' && fallbackUnit !== 'pcs / bottles') return fallbackUnit;
+  return 'packs';
+}
+
 // ── Validation Helpers ────────────────────────────────────────────────────────
 export function validatePersonName(name, fieldName = 'Customer Name') {
   if (!name || typeof name !== 'string' || !name.trim()) {
@@ -2104,19 +2114,19 @@ async function openOrderModal() {
   const getAddonLimits = (totalSiomai) => {
     if (totalSiomai <= 0) {
       return {
-        calamansi: { max: 0, unit: 'pcs', name: 'Calamansi' },
+        calamansi: { max: 0, unit: 'piece', name: 'Calamansi' },
         soy_sauce: { max: 0, unit: 'packs', name: 'Soy Sauce' },
         chili_garlic: { max: 0, unit: 'packs', name: 'Chili Garlic' }
       };
     } else if (totalSiomai <= 10) {
       return {
-        calamansi: { max: 3, unit: 'pcs', name: 'Calamansi' },
+        calamansi: { max: 3, unit: 'piece', name: 'Calamansi' },
         soy_sauce: { max: 2, unit: 'packs', name: 'Soy Sauce' },
         chili_garlic: { max: 2, unit: 'packs', name: 'Chili Garlic' }
       };
     } else {
       return {
-        calamansi: { max: 5, unit: 'pcs', name: 'Calamansi' },
+        calamansi: { max: 5, unit: 'piece', name: 'Calamansi' },
         soy_sauce: { max: 3, unit: 'packs', name: 'Soy Sauce' },
         chili_garlic: { max: 3, unit: 'packs', name: 'Chili Garlic' }
       };
@@ -3063,7 +3073,7 @@ function renderCompletedCards(filtered) {
               ${(order.items && order.items.length) ? order.items.map(i => {
       const qty = i.quantity || i.qty || 1;
       const name = i.product_name || i.name || 'Siomai';
-      const unit = i.unit || (name.toLowerCase().includes('royal') ? 'bottles' : (name.toLowerCase().includes('coke') || name.toLowerCase().includes('sprite')) ? 'bottles' : (name.toLowerCase().includes('chilli') || name.toLowerCase().includes('soy') || name.toLowerCase().includes('calamansi')) ? 'packs' : 'pcs');
+      const unit = getProductUnit(name, i.unit);
       const price = Number(i.price || 0).toFixed(2);
       const subtotal = Number(i.subtotal || (i.price * qty) || 0).toFixed(2);
       const img = i.image_url || getProductImageUrl(name);
@@ -3284,7 +3294,7 @@ function openReceiptModal(order) {
               ${(order.items && order.items.length) ? order.items.map(i => {
     const qty = Number(i.quantity ?? i.qty ?? 1);
     const name = i.product_name || i.name || 'Siomai';
-    const unit = i.unit || (name.toLowerCase().includes('royal') ? 'bottles' : (name.toLowerCase().includes('coke') || name.toLowerCase().includes('sprite')) ? 'bottles' : (name.toLowerCase().includes('chilli') || name.toLowerCase().includes('soy') || name.toLowerCase().includes('calamansi')) ? 'packs' : 'pcs');
+    const unit = getProductUnit(name, i.unit);
     const rawUnitPrice = Number(i.unit_price ?? i.price ?? 0);
     const price = rawUnitPrice.toFixed(2);
     const subtotal = Number(i.subtotal ?? (rawUnitPrice * qty) ?? 0).toFixed(2);
@@ -4343,9 +4353,10 @@ function openAddProductModal() {
               <div>
                 <label class="block text-xs text-dark-300 font-medium mb-1">Measurement Unit</label>
                 <select id="prod-unit" class="input">
-                  <option value="pcs" selected>pcs (Pieces)</option>
+                  <option value="packs" selected>packs (Packets/Packs)</option>
                   <option value="bottles">bottles (Bottles)</option>
-                  <option value="packs">packs (Packets)</option>
+                  <option value="piece">piece (Piece)</option>
+                  <option value="pcs">pcs (Pieces)</option>
                   <option value="servings">servings (Servings)</option>
                 </select>
               </div>
@@ -4425,7 +4436,7 @@ function openAddProductModal() {
     if (!unitSel) return;
     if (cat.includes('drink')) unitSel.value = 'bottles';
     else if (cat.includes('add-on') || cat.includes('sauce')) unitSel.value = 'packs';
-    else if (cat.includes('siomai') || cat.includes('dumpling')) unitSel.value = 'pcs';
+    else if (cat.includes('siomai') || cat.includes('dumpling')) unitSel.value = 'packs';
     else unitSel.value = 'servings';
     updateAddUnitLabels(unitSel.value);
   });
@@ -4533,7 +4544,7 @@ function openAddProductModal() {
 function openEditProductModal(product) {
   if (!product) return;
   const modalContainer = document.getElementById('modal-container');
-  const initialUnit = product.unit || (product.category === 'Drinks' ? (product.name.toLowerCase().includes('royal') ? 'bottles' : 'bottles') : (product.category === 'Add-ons' ? 'packs' : 'pcs'));
+  const initialUnit = getProductUnit(product.name, product.unit);
 
   modalContainer.innerHTML = `
     <div class="modal-backdrop" id="edit-prod-modal-backdrop">
@@ -4567,9 +4578,10 @@ function openEditProductModal(product) {
               <div>
                 <label class="block text-xs text-dark-300 font-medium mb-1">Measurement Unit</label>
                 <select id="edit-prod-unit" class="input">
-                  <option value="pcs" ${initialUnit === 'pcs' ? 'selected' : ''}>pcs (Pieces)</option>
+                  <option value="packs" ${initialUnit === 'packs' ? 'selected' : ''}>packs (Packets/Packs)</option>
                   <option value="bottles" ${initialUnit === 'bottles' ? 'selected' : ''}>bottles (Bottles)</option>
-                  <option value="packs" ${initialUnit === 'packs' ? 'selected' : ''}>packs (Packets)</option>
+                  <option value="piece" ${initialUnit === 'piece' ? 'selected' : ''}>piece (Piece)</option>
+                  <option value="pcs" ${initialUnit === 'pcs' ? 'selected' : ''}>pcs (Pieces)</option>
                   <option value="servings" ${initialUnit === 'servings' ? 'selected' : ''}>servings (Servings)</option>
                 </select>
               </div>
@@ -4649,7 +4661,7 @@ function openEditProductModal(product) {
     if (!unitSel) return;
     if (cat.includes('drink')) unitSel.value = 'bottles';
     else if (cat.includes('add-on') || cat.includes('sauce')) unitSel.value = 'packs';
-    else if (cat.includes('siomai') || cat.includes('dumpling')) unitSel.value = 'pcs';
+    else if (cat.includes('siomai') || cat.includes('dumpling')) unitSel.value = 'packs';
     else unitSel.value = 'servings';
     updateUnitLabels(unitSel.value);
   });
@@ -5034,53 +5046,227 @@ async function renderAnalyticsTab() {
       return Icons.sparkles({ size: 20, color: 'var(--yellow-400)' });
     };
 
+    // Daily Siomai Sales & Daily Limit Tracker (200 pieces daily cap @ ₱10/pc, target ₱2,000)
+    let quota = desc.daily_siomai_quota;
+    if (!quota || quota.sold_pieces === undefined) {
+      // Robust client-side fallback strictly for TODAY's sales only (EXCLUDES all past orders)
+      let todaySoldPcs = 0;
+      let todaySiomaiRev = 0;
+
+      // 1. Check product_timeline daily siomai (last element in array is strictly today's siomai revenue)
+      const dailySiomaiArr = desc.product_timeline?.daily?.siomai;
+      if (Array.isArray(dailySiomaiArr) && dailySiomaiArr.length > 0) {
+        todaySiomaiRev = Number(dailySiomaiArr[dailySiomaiArr.length - 1] || 0);
+        todaySoldPcs = Math.round(todaySiomaiRev / 10);
+      }
+
+      // 2. Also include any active pending/preparing orders placed today that may not be completed yet
+      const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+      if (state.queueData && Array.isArray(state.queueData.orders)) {
+        let activePendingPcs = 0;
+        state.queueData.orders.forEach(o => {
+          if (o.status !== 'cancelled' && ['pending', 'preparing', 'ready'].includes(o.status)) {
+            const oDate = o.created_at ? new Date(o.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }) : todayStr;
+            if (oDate === todayStr) {
+              (o.items || []).forEach(it => {
+                const name = (it.product_name || it.product?.name || it.name || '').toLowerCase();
+                if (name.includes('siomai')) {
+                  activePendingPcs += Number(it.quantity || 1);
+                }
+              });
+            }
+          }
+        });
+        if (activePendingPcs > 0) {
+          todaySoldPcs += activePendingPcs;
+          todaySiomaiRev += (activePendingPcs * 10);
+        }
+      }
+
+      quota = {
+        target_pieces: 200,
+        sold_pieces: todaySoldPcs,
+        remaining_pieces: Math.max(0, 200 - todaySoldPcs),
+        quota_percentage: Math.min(100, Math.round((todaySoldPcs / 200) * 100)),
+        today_revenue: todaySiomaiRev,
+        target_revenue: 2000.0,
+        is_limit_reached: todaySoldPcs >= 200,
+        is_warning: (200 - todaySoldPcs) <= 50 && todaySoldPcs < 200
+      };
+    }
+
+    const soldPieces = Number(quota.sold_pieces || 0);
+    const targetPieces = Number(quota.target_pieces || 200);
+    const remainingPieces = Number(quota.remaining_pieces ?? Math.max(0, targetPieces - soldPieces));
+    const quotaPct = Math.min(100, Math.max(0, Math.round(Number(quota.quota_percentage || (soldPieces / targetPieces * 100)))));
+    const quotaRevenue = Number(quota.today_revenue || (soldPieces * 10.0));
+    const targetRevenue = Number(quota.target_revenue || 2000.0);
+
+    const quotaStatusBadgeClass = quota.is_limit_reached
+      ? 'badge-red'
+      : (quota.is_warning ? 'badge-yellow' : 'badge-green');
+    const quotaStatusLabel = quota.is_limit_reached
+      ? 'Daily Limit Reached (Sold Out)'
+      : (quota.is_warning ? 'Low Daily Stock Alert' : 'Allocation On Track');
+    const progressBarColor = quota.is_limit_reached
+      ? 'var(--brand-500)'
+      : (quota.is_warning ? 'var(--yellow-500)' : 'var(--emerald-500)');
+
     container.innerHTML = `
-    <!-- Analytics Header & Report Navigation -->
+    <!-- Analytics Header & Action Controls -->
     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-white">Analytics</h1>
+        <h1 class="text-2xl font-bold text-white flex items-center gap-2.5">
+          ${Icons.analytics({ size: 24, color: 'var(--brand-500)' })}
+          <span>Analytics & Sales Dashboard</span>
+        </h1>
+        <p class="text-xs text-dark-300 mt-1">Real-time revenue monitoring, demand forecasts, and operational inventory guidance.</p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-2.5">
         <span class="text-xs text-dark-300 hidden sm:inline">Refreshed: ${lastUpdatedStr}</span>
         <button id="btn-export-analytics-csv" class="btn btn-secondary flex items-center gap-1.5" style="border: 1px solid var(--dark-500); cursor: pointer;" title="Export sales and order records to CSV">
-          ${Icons.download({ size: 15 })} Export CSV
+          ${Icons.download({ size: 15 })} <span>Export CSV</span>
         </button>
-        <button id="btn-refresh-analytics" class="btn btn-secondary flex items-center gap-1.5">
-          ${Icons.refresh({ size: 15 })} Refresh
+        <button id="btn-refresh-analytics" class="btn btn-secondary flex items-center gap-1.5" title="Refresh analytics data">
+          ${Icons.refresh({ size: 15 })} <span>Refresh</span>
         </button>
       </div>
     </div>
 
-    <!-- Segmented Report Filter Pills -->
+    <!-- Executive KPI Metrics (Clean 4-Card Grid) -->
+    <div class="grid-4 mb-6">
+      <div class="card stat-card" style="border-left: 4px solid var(--emerald-500);">
+        <div class="stat-icon" style="background: rgba(16,185,129,0.18); color: var(--emerald-400);">
+          ${Icons.coins({ size: 24 })}
+        </div>
+        <div>
+          <div class="text-xs text-dark-300 font-semibold tracking-wider">TOTAL REVENUE</div>
+          <div class="text-2xl font-bold text-white">₱${totalRev.toFixed(2)}</div>
+          <div class="text-xs text-dark-400 mt-1">
+            Cash: <strong class="text-white">₱${cashRev.toFixed(2)}</strong> · GCash: <strong class="text-white">₱${gcashRev.toFixed(2)}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="card stat-card" style="border-left: 4px solid var(--blue-500);">
+        <div class="stat-icon" style="background: rgba(59,130,246,0.18); color: var(--blue-400);">
+          ${Icons.clock({ size: 24 })}
+        </div>
+        <div>
+          <div class="text-xs text-dark-300 font-semibold tracking-wider">TODAY'S SALES</div>
+          <div class="text-2xl font-bold text-white">₱${todayRev.toFixed(2)}</div>
+          <div class="text-xs text-dark-400 mt-1">
+            Intake from today's completed orders
+          </div>
+        </div>
+      </div>
+
+      <div class="card stat-card" style="border-left: 4px solid var(--brand-500);">
+        <div class="stat-icon" style="background: rgba(220,38,38,0.18); color: var(--brand-400);">
+          ${Icons.queue({ size: 24 })}
+        </div>
+        <div>
+          <div class="text-xs text-dark-300 font-semibold tracking-wider">ORDERS COMPLETED</div>
+          <div class="text-2xl font-bold text-white">${totalCompleted} <span class="text-xs font-normal text-dark-400">/ ${totalOrders} orders</span></div>
+          <div class="text-xs text-dark-400 mt-1">
+            Avg. Ticket: <strong class="text-white">₱${avgOrderVal.toFixed(2)}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="card stat-card" style="border-left: 4px solid var(--purple-500);">
+        <div class="stat-icon" style="background: rgba(168,85,247,0.18); color: var(--purple-400);">
+          ${Icons.star({ size: 24 })}
+        </div>
+        <div style="min-width: 0; flex: 1;">
+          <div class="text-xs text-dark-300 font-semibold tracking-wider">TOP SELLER</div>
+          <div class="text-lg font-bold text-white truncate" title="${topRevenueProduct ? escapeHtml(topRevenueProduct.name) : 'None'}">
+            ${topRevenueProduct ? escapeHtml(topRevenueProduct.name) : 'None'}
+          </div>
+          <div class="text-xs text-dark-400 mt-1 truncate">
+            ${topRevenueProduct ? `₱${Number(topRevenueProduct.revenue).toFixed(2)} total intake` : 'Awaiting completed sales'}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily Siomai Sales & Limit Tracker (200 Pcs Cap) -->
+    <div class="card p-5 mb-6" style="border: 1px solid var(--dark-500); background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.95) 100%); box-shadow: 0 4px 20px -2px rgba(0,0,0,0.25);">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-3">
+        <div class="flex items-center gap-3">
+          <div style="background: rgba(249, 115, 22, 0.18); color: var(--brand-400); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            ${Icons.siomai({ size: 24, color: 'var(--brand-500)' })}
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="text-sm font-bold text-white uppercase tracking-wider">Daily Siomai Sales & Limit Tracker</h3>
+              <span class="badge ${quotaStatusBadgeClass}" style="font-size: 11px;">${quotaStatusLabel}</span>
+            </div>
+            <p class="text-xs text-dark-300 mt-0.5">Daily Limit: <strong>200 pieces / day</strong> (₱10 per piece &bull; ₱2,000.00 daily sales target)</p>
+          </div>
+        </div>
+        <div class="text-left sm:text-right">
+          <div class="text-xs text-dark-300 font-medium">Today's Siomai Revenue</div>
+          <div class="text-lg font-bold text-emerald-400">₱${quotaRevenue.toFixed(2)} <span class="text-xs text-dark-400 font-normal">/ ₱${targetRevenue.toFixed(2)} target</span></div>
+        </div>
+      </div>
+
+      <!-- Clean Progress Meter & Stats (Pieces Only) -->
+      <div class="p-3.5 rounded-xl" style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--dark-600);">
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs mb-2">
+          <div class="flex items-center gap-4">
+            <span class="text-white">
+              Sold Today: <strong class="text-brand-400 text-sm font-bold">${soldPieces} pcs</strong>
+            </span>
+            <span class="text-dark-300">
+              Remaining: <strong class="text-white text-sm font-bold">${remainingPieces} pcs</strong>
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-dark-300">Daily Cap: ${targetPieces} pcs</span>
+            <span class="badge ${quotaPct >= 100 ? 'badge-red' : (quotaPct >= 75 ? 'badge-yellow' : 'badge-green')}" style="font-size: 11px;">${quotaPct}% of Daily Limit</span>
+          </div>
+        </div>
+        <div style="width: 100%; height: 12px; background: rgba(0,0,0,0.4); border-radius: 999px; overflow: hidden; border: 1px solid var(--dark-600);">
+          <div style="width: ${quotaPct}%; height: 100%; background: ${progressBarColor}; border-radius: 999px; transition: width 0.5s ease;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section Navigation Tabs -->
     <div class="flex flex-wrap items-center gap-2 mb-6 p-1.5 rounded-xl" style="background: var(--dark-800); border: 1px solid var(--dark-600); width: fit-content;">
-      <button class="analytics-tab-btn btn-sm ${state.analyticsSection === 'all' ? 'active' : ''}" data-section="all" style="padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; border: none; background: ${state.analyticsSection === 'all' ? 'var(--brand-500)' : 'transparent'}; color: ${state.analyticsSection === 'all' ? '#ffffff' : 'var(--dark-300)'};">
-        All
+      <button class="analytics-tab-btn btn-sm ${state.analyticsSection === 'all' ? 'active' : ''}" data-section="all" style="padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: ${state.analyticsSection === 'all' ? 'var(--brand-500)' : 'transparent'}; color: ${state.analyticsSection === 'all' ? '#ffffff' : 'var(--dark-300)'};">
+        Overview
       </button>
-      <button class="analytics-tab-btn btn-sm ${state.analyticsSection === 'descriptive' ? 'active' : ''}" data-section="descriptive" style="padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; border: none; background: ${state.analyticsSection === 'descriptive' ? 'var(--brand-500)' : 'transparent'}; color: ${state.analyticsSection === 'descriptive' ? '#ffffff' : 'var(--dark-300)'};">
-        Descriptive
+      <button class="analytics-tab-btn btn-sm ${state.analyticsSection === 'descriptive' ? 'active' : ''}" data-section="descriptive" style="padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: ${state.analyticsSection === 'descriptive' ? 'var(--brand-500)' : 'transparent'}; color: ${state.analyticsSection === 'descriptive' ? '#ffffff' : 'var(--dark-300)'};">
+        Sales & Menu Performance
       </button>
-      <button class="analytics-tab-btn btn-sm ${state.analyticsSection === 'predictive' ? 'active' : ''}" data-section="predictive" style="padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; border: none; background: ${state.analyticsSection === 'predictive' ? 'var(--brand-500)' : 'transparent'}; color: ${state.analyticsSection === 'predictive' ? '#ffffff' : 'var(--dark-300)'};">
-        Predictive
+      <button class="analytics-tab-btn btn-sm ${state.analyticsSection === 'predictive' ? 'active' : ''}" data-section="predictive" style="padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: ${state.analyticsSection === 'predictive' ? 'var(--brand-500)' : 'transparent'}; color: ${state.analyticsSection === 'predictive' ? '#ffffff' : 'var(--dark-300)'};">
+        Demand Forecast
       </button>
-      <button class="analytics-tab-btn btn-sm ${state.analyticsSection === 'prescriptive' ? 'active' : ''}" data-section="prescriptive" style="padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; border: none; background: ${state.analyticsSection === 'prescriptive' ? 'var(--brand-500)' : 'transparent'}; color: ${state.analyticsSection === 'prescriptive' ? '#ffffff' : 'var(--dark-300)'};">
-        Prescriptive
+      <button class="analytics-tab-btn btn-sm ${state.analyticsSection === 'prescriptive' ? 'active' : ''}" data-section="prescriptive" style="padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: ${state.analyticsSection === 'prescriptive' ? 'var(--brand-500)' : 'transparent'}; color: ${state.analyticsSection === 'prescriptive' ? '#ffffff' : 'var(--dark-300)'};">
+        Actionable Recommendations
       </button>
     </div>
 
     <!-- ======================================================================== -->
-    <!-- UNIFIED REVENUE: DESCRIPTIVE ACTUALS & PREDICTIVE FORECAST               -->
+    <!-- UNIFIED REVENUE: SEPARATE LINES (SIOMAI, COKE, ROYAL, SPRITE)             -->
     <!-- ======================================================================== -->
     <div class="card p-6 mb-6" id="card-unified-revenue" style="border: 1px solid var(--dark-500); box-shadow: 0 8px 24px -4px rgba(0,0,0,0.25);">
       <div class="flex flex-wrap items-center justify-between gap-4 mb-3">
         <div class="flex flex-wrap items-center gap-3">
           <h2 class="text-lg font-bold text-white flex items-center gap-2">
             ${Icons.trendUp({ size: 20, color: 'var(--brand-500)' })}
-            <span>Revenue: Actual vs. Forecast</span>
+            <span>Revenue Trends by Product</span>
           </h2>
           <div class="flex items-center gap-1 p-1 rounded-lg" style="background: var(--dark-800); border: 1px solid var(--dark-600);">
-            ${['daily', 'weekly', 'monthly'].map(tf => `
-              <button class="analytics-tf-btn" data-timeframe="${tf}" style="padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: capitalize; cursor: pointer; border: none; background: ${state.analyticsTimeframe === tf ? 'var(--brand-500)' : 'transparent'}; color: ${state.analyticsTimeframe === tf ? '#ffffff' : 'var(--dark-300)'};">
-                ${tf}
+            ${[
+              { id: 'daily', label: 'Daily' },
+              { id: 'weekly', label: 'Weekly' },
+              { id: 'monthly', label: 'Monthly' }
+            ].map(tf => `
+              <button class="analytics-tf-btn" data-timeframe="${tf.id}" style="padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; background: ${state.analyticsTimeframe === tf.id ? 'var(--brand-500)' : 'transparent'}; color: ${state.analyticsTimeframe === tf.id ? '#ffffff' : 'var(--dark-300)'};">
+                ${tf.label}
               </button>
             `).join('')}
           </div>
@@ -5092,33 +5278,39 @@ async function renderAnalyticsTab() {
           </span>
           <span class="text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5" style="background: rgba(59,130,246,0.15); color: var(--blue-400); border: 1px solid rgba(59,130,246,0.35);">
             <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#3b82f6;"></span>
-            <span>Forecast: ₱${Number(pred.predicted_sales || 0).toFixed(2)}</span>
+            <span>Projected: ₱${Number(pred.predicted_sales || 0).toFixed(2)}</span>
           </span>
         </div>
       </div>
 
-      <!-- Statistical Reliability & Status Banner -->
+      <!-- Quick Chart Reading Guide -->
+      <div class="mb-3 px-3 py-2 rounded-lg flex items-center gap-2 text-xs" style="background: rgba(255,255,255,0.03); border: 1px solid var(--dark-600); color: var(--dark-200);">
+        ${Icons.info({ size: 15, color: 'var(--brand-400)' })}
+        <span><strong>How to read this chart:</strong> Each product (HotSpot Siomai, Coke, Royal, Sprite) has its own distinct line so you can see which item generates the most money. <em>Click any product name in the chart legend above to toggle its line on or off.</em></span>
+      </div>
+
+      <!-- Forecast Status Banner -->
       ${pred.has_sufficient_data ? `
-        <div class="mb-4 px-3.5 py-2.5 rounded-xl flex items-center justify-between text-xs" style="background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); color: var(--blue-400);">
+        <div class="mb-4 px-3.5 py-2.5 rounded-xl flex items-center justify-between text-xs" style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); color: var(--emerald-400);">
           <span class="flex items-center gap-2">
             ${Icons.cpu({ size: 16 })}
-            <span><strong>Linear Regression:</strong> <code>y = ${pred.trend_slope}x + ${pred.trend_intercept}</code> (${pred.current_days_count} daily records, R² = ${pred.confidence})</span>
+            <span><strong>Forecast Model Active:</strong> Projected using ${pred.current_days_count} days of completed sales (${(Number(pred.confidence || 0) * 100).toFixed(0)}% confidence).</span>
           </span>
-          <span class="badge badge-blue hidden sm:inline" style="font-size: 10px;">OLS Active</span>
+          <span class="badge badge-success hidden sm:inline" style="font-size: 10px;">Active Forecast</span>
         </div>
       ` : (pred.is_preliminary ? `
         <div class="mb-4 px-3.5 py-2.5 rounded-xl flex items-center justify-between text-xs" style="background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.3); color: var(--yellow-400);">
           <span class="flex items-center gap-2">
             ${Icons.alert({ size: 16 })}
-            <span><strong>Preliminary Baseline:</strong> ${pred.current_days_count} of ${pred.min_required_days} required operating days. Dashed line reflects daily run-rate average (₱${Number(pred.predicted_sales || 0).toFixed(2)}/day).</span>
+            <span><strong>Preliminary Estimate:</strong> ${pred.current_days_count} of ${pred.min_required_days} sales days recorded. Using daily average run-rate (₱${Number(pred.predicted_sales || 0).toFixed(2)}/day) until 3 days are completed.</span>
           </span>
-          <span class="badge badge-yellow hidden sm:inline" style="font-size: 10px;">Preliminary</span>
+          <span class="badge badge-yellow hidden sm:inline" style="font-size: 10px;">Preliminary Estimate</span>
         </div>
       ` : `
         <div class="mb-4 px-3.5 py-2.5 rounded-xl flex items-center justify-between text-xs" style="background: rgba(148,163,184,0.08); border: 1px solid rgba(148,163,184,0.2); color: var(--dark-300);">
           <span class="flex items-center gap-2">
             ${Icons.info({ size: 16 })}
-            <span>Complete customer orders to begin plotting verified actuals and demand forecasts.</span>
+            <span>Complete customer orders to display product revenue lines and future demand projections.</span>
           </span>
           <span class="badge badge-gray hidden sm:inline" style="font-size: 10px;">Awaiting Data</span>
         </div>
@@ -5127,57 +5319,71 @@ async function renderAnalyticsTab() {
       <!-- Visual Legend Guide -->
       <div class="flex flex-wrap items-center justify-between gap-3 mb-3 pb-3 border-b border-dark-600 text-xs">
         <div class="flex flex-wrap items-center gap-4">
-          <div class="flex items-center gap-2">
-            <span style="display:inline-block; width: 20px; height: 3px; background: #10b981; border-radius: 2px;"></span>
-            <span class="text-white font-semibold">Solid Green:</span>
-            <span class="text-dark-300">Actual Revenue</span>
+          <div class="flex items-center gap-1.5">
+            <span style="display:inline-block; width: 14px; height: 14px; border-radius: 4px; background: #f97316;"></span>
+            <span class="text-white font-semibold">HotSpot Siomai</span>
           </div>
-          <div class="flex items-center gap-2">
-            <span style="display:inline-block; width: 20px; height: 3px; border-top: 3px dashed #3b82f6;"></span>
-            <span class="text-white font-semibold">Dashed Blue:</span>
-            <span class="text-dark-300">Forecast (${pred.has_sufficient_data ? 'OLS Regression' : (pred.is_preliminary ? 'Preliminary Run-Rate' : 'Awaiting Data')})</span>
+          <div class="flex items-center gap-1.5">
+            <span style="display:inline-block; width: 14px; height: 14px; border-radius: 4px; background: #ef4444;"></span>
+            <span class="text-white font-semibold">Coke</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span style="display:inline-block; width: 14px; height: 14px; border-radius: 4px; background: #f59e0b;"></span>
+            <span class="text-white font-semibold">Royal</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span style="display:inline-block; width: 14px; height: 14px; border-radius: 4px; background: #10b981;"></span>
+            <span class="text-white font-semibold">Sprite</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span style="display:inline-block; width: 16px; height: 3px; border-top: 3px dashed #6366f1;"></span>
+            <span class="text-dark-300">Total Actual Revenue</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span style="display:inline-block; width: 16px; height: 3px; border-top: 3px dashed #3b82f6;"></span>
+            <span class="text-blue-400">Forecast Projection</span>
           </div>
         </div>
       </div>
 
       <!-- Main Combined Revenue Chart Canvas -->
-      <div class="chart-container" style="height: 290px;">
+      <div class="chart-container" style="height: 310px;">
         <canvas id="revenueChart"></canvas>
       </div>
 
-      <!-- Prescriptive Directives Strip -->
+      <!-- Quick Store Insights Strip -->
       <div class="mt-4 pt-4 border-t border-dark-600">
         <div class="flex items-center gap-2 mb-3">
           ${Icons.sparkles({ size: 16, color: 'var(--purple-400)' })}
-          <span class="text-xs font-bold uppercase tracking-wider text-white">Directives</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-white">Quick Store Insights</span>
         </div>
         <div class="grid-3" style="gap: 12px;">
           <div class="p-3 rounded-xl" style="background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.25);">
             <div class="flex items-center gap-1.5 text-xs font-semibold text-emerald-400 mb-1">
-              ${Icons.receipt({ size: 14, color: 'var(--emerald-400)' })} <span>Verified Velocity</span>
+              ${Icons.receipt({ size: 14, color: 'var(--emerald-400)' })} <span>Today's Performance</span>
             </div>
             <div class="text-xs text-dark-200">
-              <strong>₱${todayRev.toFixed(2)}</strong> today across <strong>${totalCompleted}</strong> orders.
-              ${topRevenueProduct ? `${escapeHtml(topRevenueProduct.name)} generated ₱${Number(topRevenueProduct.revenue).toFixed(2)}.` : ''}
+              <strong>₱${todayRev.toFixed(2)}</strong> from <strong>${totalCompleted}</strong> completed orders.
+              ${topRevenueProduct ? `<br>Top Earner: <strong>${escapeHtml(topRevenueProduct.name)}</strong> (₱${Number(topRevenueProduct.revenue).toFixed(2)}).` : ''}
             </div>
           </div>
 
           <div class="p-3 rounded-xl" style="background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.25);">
             <div class="flex items-center gap-1.5 text-xs font-semibold text-blue-400 mb-1">
-              ${Icons.target({ size: 14, color: 'var(--blue-400)' })} <span>Forecast Target</span>
+              ${Icons.target({ size: 14, color: 'var(--blue-400)' })} <span>Next Day Target</span>
             </div>
             <div class="text-xs text-dark-200">
-              Next period target: <strong>₱${Number(pred.predicted_sales || 0).toFixed(2)}</strong> (~${pred.predicted_orders || 25} orders).
-              ${pred.has_sufficient_data ? `Trend: ${pred.trend_slope > 0 ? '+' : ''}₱${pred.trend_slope}/day.` : 'Empirical daily run-rate.'}
+              Projected sales tomorrow: <strong>₱${Number(pred.predicted_sales || 0).toFixed(2)}</strong> (~${pred.predicted_orders || 25} orders).
+              ${pred.has_sufficient_data ? `Trend: ${pred.trend_slope > 0 ? '+' : ''}₱${pred.trend_slope}/day.` : 'Baseline forecast based on active sales rate.'}
             </div>
           </div>
 
           <div class="p-3 rounded-xl" style="background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.25);">
             <div class="flex items-center gap-1.5 text-xs font-semibold text-purple-400 mb-1">
-              ${Icons.cook({ size: 14, color: 'var(--purple-400)' })} <span>Kitchen Action</span>
+              ${Icons.cook({ size: 14, color: 'var(--purple-400)' })} <span>Steamer & Prep Guide</span>
             </div>
             <div class="text-xs text-dark-200">
-              ${actualPeaks.length > 0 ? `Stage counter at ${((actualPeaks[0].hour - 1) % 24)}:30 prior to peak (${actualPeaks[0].label}).` : 'Maintain baseline 40-pc steamer tray for instant walk-in dispatch.'}
+              ${actualPeaks.length > 0 ? `Begin pre-steaming extra batches at ${((actualPeaks[0].hour - 1) % 24)}:30 ahead of peak rush (${actualPeaks[0].label}).` : 'Maintain 30–40 pcs of hot siomai in the steamer during rush periods for rapid dispatch.'}
             </div>
           </div>
         </div>
@@ -5185,65 +5391,29 @@ async function renderAnalyticsTab() {
     </div>
 
     <!-- ======================================================================== -->
-    <!-- SECTION 1: DESCRIPTIVE ANALYTICS                                         -->
+    <!-- SECTION 1: DESCRIPTIVE ANALYTICS (SALES & MENU PERFORMANCE)               -->
     <!-- ======================================================================== -->
     <div id="section-descriptive" style="display: ${state.analyticsSection === 'all' || state.analyticsSection === 'descriptive' ? 'block' : 'none'};">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-bold text-white">Descriptive Analytics</h2>
-      </div>
-
-      <!-- Primary Financial KPI Cards -->
-      <div class="grid-4 mb-6">
-        <div class="card stat-card" style="border-left: 4px solid var(--emerald-500);">
-          <div class="stat-icon" style="background: rgba(16,185,129,0.2); color: var(--emerald-400);">
-            ${Icons.coins({ size: 24 })}
-          </div>
-          <div>
-            <div class="text-xs text-dark-300 font-medium">TOTAL REVENUE</div>
-            <div class="text-2xl font-bold text-white">₱${totalRev.toFixed(2)}</div>
-          </div>
-        </div>
-
-        <div class="card stat-card" style="border-left: 4px solid var(--blue-500);">
-          <div class="stat-icon" style="background: rgba(59,130,246,0.2); color: var(--blue-400);">
-            ${Icons.clock({ size: 24 })}
-          </div>
-          <div>
-            <div class="text-xs text-dark-300 font-medium">TODAY'S REVENUE</div>
-            <div class="text-2xl font-bold text-white">₱${todayRev.toFixed(2)}</div>
-          </div>
-        </div>
-
-        <div class="card stat-card" style="border-left: 4px solid var(--brand-500);">
-          <div class="stat-icon" style="background: rgba(220,38,38,0.2); color: var(--brand-400);">
-            ${Icons.queue({ size: 24 })}
-          </div>
-          <div>
-            <div class="text-xs text-dark-300 font-medium">TOTAL ORDERS</div>
-            <div class="text-2xl font-bold text-white">${totalOrders}</div>
-          </div>
-        </div>
-
-        <div class="card stat-card" style="border-left: 4px solid var(--purple-500);">
-          <div class="stat-icon" style="background: rgba(168,85,247,0.2); color: var(--purple-400);">
-            ${Icons.analytics({ size: 24 })}
-          </div>
-          <div>
-            <div class="text-xs text-dark-300 font-medium">AVG ORDER VALUE</div>
-            <div class="text-2xl font-bold text-white">₱${avgOrderVal.toFixed(2)}</div>
-          </div>
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            ${Icons.receipt({ size: 20, color: 'var(--emerald-400)' })}
+            <span>Sales & Menu Performance</span>
+          </h2>
+          <p class="text-xs text-dark-300">Verified revenue, payment methods, customer traffic, and menu item performance from completed orders.</p>
         </div>
       </div>
 
-      <!-- Secondary Operational KPI Cards -->
+      <!-- Operational Breakdown Cards -->
       <div class="grid-4 mb-6">
         <div class="card stat-card">
           <div class="stat-icon" style="background: rgba(234,179,8,0.15); color: var(--yellow-400);">
             ${Icons.coins({ size: 24 })}
           </div>
           <div>
-            <div class="text-xs text-dark-300 font-medium">CASH REVENUE</div>
-            <div class="text-2xl font-bold text-white">₱${cashRev.toFixed(2)}</div>
+            <div class="text-xs text-dark-300 font-medium">CASH IN REGISTER</div>
+            <div class="text-xl font-bold text-white">₱${cashRev.toFixed(2)}</div>
+            <div class="text-xs text-dark-400 mt-0.5">Physical cash collected</div>
           </div>
         </div>
 
@@ -5252,20 +5422,20 @@ async function renderAnalyticsTab() {
             ${Icons.creditCard({ size: 24 })}
           </div>
           <div>
-            <div class="text-xs text-dark-300 font-medium">GCASH REVENUE</div>
-            <div class="text-2xl font-bold text-white">₱${gcashRev.toFixed(2)}</div>
+            <div class="text-xs text-dark-300 font-medium">GCASH QR SALES</div>
+            <div class="text-xl font-bold text-white">₱${gcashRev.toFixed(2)}</div>
+            <div class="text-xs text-dark-400 mt-0.5">Digital cashless payments</div>
           </div>
         </div>
 
         <div class="card stat-card">
-          <div class="stat-icon" style="background: rgba(16,185,129,0.15); color: var(--emerald-400);">
-            ${Icons.star({ size: 24 })}
+          <div class="stat-icon" style="background: rgba(168,85,247,0.15); color: var(--purple-400);">
+            ${Icons.analytics({ size: 24 })}
           </div>
-          <div style="min-width: 0; flex: 1;">
-            <div class="text-xs text-dark-300 font-medium">TOP REVENUE ITEM</div>
-            <div class="text-base font-bold text-white" style="line-height: 1.3; word-break: break-word;" title="${topRevenueProduct ? escapeHtml(topRevenueProduct.name) : 'None'}">
-              ${topRevenueProduct ? escapeHtml(topRevenueProduct.name) : 'None'}
-            </div>
+          <div>
+            <div class="text-xs text-dark-300 font-medium">AVG. ORDER VALUE</div>
+            <div class="text-xl font-bold text-white">₱${avgOrderVal.toFixed(2)}</div>
+            <div class="text-xs text-dark-400 mt-0.5">Average customer spend</div>
           </div>
         </div>
 
@@ -5274,51 +5444,86 @@ async function renderAnalyticsTab() {
             ${Icons.package({ size: 24 })}
           </div>
           <div style="min-width: 0; flex: 1;">
-            <div class="text-xs text-dark-300 font-medium">TOP VOLUME SELLER</div>
-            <div class="text-base font-bold text-white" style="line-height: 1.3; word-break: break-word;" title="${escapeHtml(topVolumeProduct)}">
+            <div class="text-xs text-dark-300 font-medium">MOST POPULAR ITEM</div>
+            <div class="text-base font-bold text-white truncate" title="${escapeHtml(topVolumeProduct)}">
               ${escapeHtml(topVolumeProduct)}
             </div>
+            <div class="text-xs text-dark-400 mt-0.5">Highest unit quantity sold</div>
           </div>
         </div>
       </div>
 
-      <div class="grid-2 mb-6">
-        <!-- Peak Hours Profile -->
-        <div class="card p-6">
-          <div class="flex items-center justify-between mb-3">
+      <!-- Combined Operational & Product Performance Card -->
+      <div class="card p-6 mb-6" id="card-combined-traffic-product" style="border: 1px solid var(--dark-500); box-shadow: 0 8px 24px -4px rgba(0,0,0,0.25);">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-4 pb-3 border-b border-dark-600">
+          <div>
             <h3 class="text-base font-bold text-white flex items-center gap-2">
-              ${Icons.clock({ size: 18, color: 'var(--blue-500)' })}
-              <span>Hourly Order Distribution</span>
+              ${Icons.barChart2({ size: 18, color: 'var(--brand-500)' })}
+              <span>Customer Traffic & Product Revenue Share</span>
             </h3>
+            <p class="text-xs text-dark-300 mt-0.5">Hourly customer arrival volume combined with menu revenue breakdown in a single unified view.</p>
           </div>
-          <div class="chart-container" style="height: 240px;">
-            <canvas id="salesChart"></canvas>
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-1 p-1 rounded-lg" style="background: var(--dark-800); border: 1px solid var(--dark-600);">
+              <button id="btn-view-both" class="traffic-prod-toggle-btn active" style="padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; background: var(--brand-500); color: #ffffff;">
+                Both (Combined)
+              </button>
+              <button id="btn-view-traffic" class="traffic-prod-toggle-btn" style="padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--dark-300);">
+                Hourly Traffic
+              </button>
+              <button id="btn-view-product" class="traffic-prod-toggle-btn" style="padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--dark-300);">
+                Product Share
+              </button>
+            </div>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5" style="background: rgba(59,130,246,0.12); color: var(--blue-400); border: 1px solid rgba(59,130,246,0.25);">
+              ${Icons.clock({ size: 13 })}
+              <span>Peak: ${actualPeaks.length > 0 ? `${actualPeaks[0].label} (${actualPeaks[0].orders} orders)` : 'Normal'}</span>
+            </span>
           </div>
         </div>
 
-        <!-- Product Revenue Share -->
-        <div class="card p-6">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-base font-bold text-white flex items-center gap-2">
-              ${Icons.pieChart({ size: 18, color: 'var(--purple-500)' })}
-              <span>Revenue Contribution</span>
-            </h3>
+        <!-- 2-Pane Integrated Layout inside single card -->
+        <div id="combined-charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 24px; align-items: start;">
+          <!-- Hourly Traffic Pane -->
+          <div id="pane-hourly-traffic">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                ${Icons.clock({ size: 14, color: 'var(--blue-400)' })} Customer Traffic by Hour
+              </span>
+              <span class="text-xs text-dark-400">7:00 AM – 10:00 PM</span>
+            </div>
+            <p class="text-xs text-dark-300 mb-2">Identifies rush periods to pre-steam siomai batches and stock drinks.</p>
+            <div class="chart-container" style="height: 250px;">
+              <canvas id="salesChart"></canvas>
+            </div>
           </div>
-          <div class="chart-container" style="height: 240px;">
-            <canvas id="productChart"></canvas>
+
+          <!-- Product Share Pane -->
+          <div id="pane-product-share" style="border-left: 1px solid var(--dark-600); padding-left: 20px;">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                ${Icons.pieChart({ size: 14, color: 'var(--purple-400)' })} Revenue Share by Product
+              </span>
+              <span class="text-xs text-emerald-400 font-semibold">Total: ₱${totalRev.toFixed(2)}</span>
+            </div>
+            <p class="text-xs text-dark-300 mb-2">Percentage share of total gross revenue generated per menu item.</p>
+            <div class="chart-container" style="height: 250px;">
+              <canvas id="productChart"></canvas>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Descriptive Table: Product Sales Breakdown -->
       <div class="card p-6 mb-6 overflow-hidden">
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center justify-between mb-2">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             ${Icons.receipt({ size: 18, color: 'var(--brand-500)' })}
-            <span>Menu Performance</span>
+            <span>Menu Item Performance Breakdown</span>
           </h3>
-          <span class="text-xs text-dark-300">${topProducts.length} item(s)</span>
+          <span class="text-xs text-dark-300">${topProducts.length} items</span>
         </div>
+        <p class="text-xs text-dark-300 mb-4">Detailed ledger of total units sold, gross revenue generated, and contribution percentage.</p>
 
         <div style="overflow-x: auto;">
           <table style="width: 100%; border-collapse: collapse; text-align: left;">
@@ -5326,8 +5531,8 @@ async function renderAnalyticsTab() {
               <tr style="border-bottom: 1px solid var(--dark-600); color: var(--dark-400); font-size: 12px; text-transform: uppercase;">
                 <th class="py-3 px-4">Menu Item</th>
                 <th class="py-3 px-4 text-center">Units Sold</th>
-                <th class="py-3 px-4 text-right">Revenue</th>
-                <th class="py-3 px-4 text-center">Share</th>
+                <th class="py-3 px-4 text-right">Total Revenue</th>
+                <th class="py-3 px-4 text-center">Revenue Share</th>
                 <th class="py-3 px-4 text-center">Status</th>
               </tr>
             </thead>
@@ -5335,6 +5540,7 @@ async function renderAnalyticsTab() {
               ${topProducts.length > 0 ? topProducts.map(p => {
       const pRev = Number(p.revenue || 0);
       const pQty = Number(p.quantity || 0);
+      const pUnit = getProductUnit(p.name, p.unit);
       const sharePct = totalRev > 0 ? Math.round((pRev / totalRev) * 100) : 0;
       const isTop = topRevenueProduct && topRevenueProduct.name === p.name && pRev > 0;
 
@@ -5346,7 +5552,7 @@ async function renderAnalyticsTab() {
                         <span>${escapeHtml(p.name)}</span>
                       </div>
                     </td>
-                    <td class="py-3 px-4 text-center text-dark-200 font-semibold">${pQty} pcs</td>
+                    <td class="py-3 px-4 text-center text-dark-200 font-semibold">${pQty} ${pUnit}</td>
                     <td class="py-3 px-4 text-right font-bold text-emerald-400">₱${pRev.toFixed(2)}</td>
                     <td class="py-3 px-4 text-center">
                       <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
@@ -5364,7 +5570,7 @@ async function renderAnalyticsTab() {
     }).join('') : `
                 <tr>
                   <td colspan="5" class="py-6 text-center text-dark-400 text-sm">
-                    No completed product sales recorded in the database yet.
+                    No completed customer sales recorded yet.
                   </td>
                 </tr>
               `}
@@ -5375,11 +5581,17 @@ async function renderAnalyticsTab() {
     </div>
 
     <!-- ======================================================================== -->
-    <!-- SECTION 2: PREDICTIVE ANALYTICS                                          -->
+    <!-- SECTION 2: PREDICTIVE ANALYTICS (DEMAND FORECAST)                         -->
     <!-- ======================================================================== -->
     <div id="section-predictive" style="display: ${state.analyticsSection === 'all' || state.analyticsSection === 'predictive' ? 'block' : 'none'};" class="mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-bold text-white">Predictive Analytics</h2>
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            ${Icons.cpu({ size: 20, color: 'var(--blue-400)' })}
+            <span>7-Day Demand Forecast</span>
+          </h2>
+          <p class="text-xs text-dark-300">Predictive revenue and volume projections calculated from past sales pace and trendlines.</p>
+        </div>
       </div>
 
       ${pred.has_sufficient_data ? `
@@ -5390,8 +5602,9 @@ async function renderAnalyticsTab() {
               ${Icons.calendar({ size: 24 })}
             </div>
             <div>
-              <div class="text-xs text-dark-300 font-medium">NEXT FORECAST</div>
+              <div class="text-xs text-dark-300 font-medium">NEXT DAY FORECAST</div>
               <div class="text-2xl font-bold text-white">₱${Number(pred.predicted_sales || 0).toFixed(2)}</div>
+              <div class="text-xs text-dark-400 mt-0.5">Estimated revenue tomorrow</div>
             </div>
           </div>
 
@@ -5400,8 +5613,9 @@ async function renderAnalyticsTab() {
               ${Icons.queue({ size: 24 })}
             </div>
             <div>
-              <div class="text-xs text-dark-300 font-medium">PROJECTED ORDERS</div>
+              <div class="text-xs text-dark-300 font-medium">EXPECTED ORDERS</div>
               <div class="text-2xl font-bold text-white">${pred.predicted_orders ?? 1}</div>
+              <div class="text-xs text-dark-400 mt-0.5">Estimated customer orders</div>
             </div>
           </div>
 
@@ -5410,8 +5624,9 @@ async function renderAnalyticsTab() {
               ${Icons.trendUp({ size: 24 })}
             </div>
             <div>
-              <div class="text-xs text-dark-300 font-medium">DAILY TREND SLOPE</div>
+              <div class="text-xs text-dark-300 font-medium">SALES TREND</div>
               <div class="text-2xl font-bold text-white">${pred.trend_slope > 0 ? '+' : ''}₱${pred.trend_slope}/day</div>
+              <div class="text-xs text-dark-400 mt-0.5">${pred.trend_slope >= 0 ? 'Upward revenue pace' : 'Declining revenue pace'}</div>
             </div>
           </div>
 
@@ -5420,28 +5635,30 @@ async function renderAnalyticsTab() {
               ${Icons.cpu({ size: 24 })}
             </div>
             <div>
-              <div class="text-xs text-dark-300 font-medium">MODEL FIT (R²)</div>
+              <div class="text-xs text-dark-300 font-medium">MODEL CONFIDENCE</div>
               <div class="text-2xl font-bold text-white">${(Number(pred.confidence || 0) * 100).toFixed(1)}%</div>
+              <div class="text-xs text-dark-400 mt-0.5">Based on ${pred.current_days_count} active days</div>
             </div>
           </div>
         </div>
 
         <!-- 7-Day Statistical Revenue Forecast -->
         <div class="card p-6 mb-6">
-          <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-between mb-2">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
-              ${Icons.cpu({ size: 18, color: 'var(--blue-500)' })}
-              <span>7-Day Statistical Forecast</span>
+              ${Icons.calendar({ size: 18, color: 'var(--blue-500)' })}
+              <span>7-Day Projected Sales Outlook</span>
             </h3>
-            <span class="badge badge-blue">${pred.current_days_count} Daily Records</span>
+            <span class="badge badge-blue">${pred.current_days_count} Days of Sales Data</span>
           </div>
+          <p class="text-xs text-dark-300 mb-4">Projected daily revenue to assist with purchasing raw siomai packs and restocking chilled drinks.</p>
 
           <div class="grid-4" style="gap: 10px;">
             ${(pred.forecast_labels || []).map((label, idx) => `
               <div class="p-3 rounded-xl text-center" style="background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2);">
                 <div class="text-xs text-dark-300">${label}</div>
                 <div class="text-base font-bold text-white mt-1">₱${Number(pred.forecast_data?.[idx] || 0).toFixed(2)}</div>
-                <div class="text-xs text-blue-400 mt-0.5" style="font-size: 10px;">Projection</div>
+                <div class="text-xs text-blue-400 mt-0.5" style="font-size: 10px;">Projected</div>
               </div>
             `).join('')}
           </div>
@@ -5456,6 +5673,7 @@ async function renderAnalyticsTab() {
             <div>
               <div class="text-xs text-dark-300 font-medium">PRELIMINARY FORECAST</div>
               <div class="text-2xl font-bold text-white">₱${Number(pred.predicted_sales || 0).toFixed(2)}</div>
+              <div class="text-xs text-dark-400 mt-0.5">Daily average run-rate</div>
             </div>
           </div>
 
@@ -5466,6 +5684,7 @@ async function renderAnalyticsTab() {
             <div>
               <div class="text-xs text-dark-300 font-medium">ESTIMATED ORDERS</div>
               <div class="text-2xl font-bold text-white">${pred.predicted_orders ?? 1}</div>
+              <div class="text-xs text-dark-400 mt-0.5">Estimated order count tomorrow</div>
             </div>
           </div>
 
@@ -5474,8 +5693,9 @@ async function renderAnalyticsTab() {
               ${Icons.trendUp({ size: 24 })}
             </div>
             <div>
-              <div class="text-xs text-dark-300 font-medium">EMPIRICAL RUN-RATE</div>
+              <div class="text-xs text-dark-300 font-medium">DAILY SALES RATE</div>
               <div class="text-2xl font-bold text-white">₱${Number(pred.predicted_sales || 0).toFixed(2)}/day</div>
+              <div class="text-xs text-dark-400 mt-0.5">Current sales velocity</div>
             </div>
           </div>
 
@@ -5484,23 +5704,25 @@ async function renderAnalyticsTab() {
               ${Icons.cpu({ size: 24 })}
             </div>
             <div>
-              <div class="text-xs text-dark-300 font-medium">CALIBRATION PROGRESS</div>
+              <div class="text-xs text-dark-300 font-medium">DATA PROGRESS</div>
               <div class="text-2xl font-bold text-white">${pred.current_days_count} / ${pred.min_required_days} Days</div>
+              <div class="text-xs text-dark-400 mt-0.5">Requires 3 active sales days</div>
             </div>
           </div>
         </div>
 
         <!-- 7-Day Baseline Projections -->
         <div class="card p-6 mb-6" style="border: 1px solid rgba(234,179,8,0.25);">
-          <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-            <h3 class="text-base font-bold text-white">7-Day Baseline Projections</h3>
-            <span class="badge badge-yellow">Need ${pred.min_required_days - pred.current_days_count} More Day(s) for OLS</span>
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-2">
+            <h3 class="text-base font-bold text-white">Preliminary 7-Day Projections</h3>
+            <span class="badge badge-yellow">${pred.min_required_days - pred.current_days_count} more active day(s) needed</span>
           </div>
+          <p class="text-xs text-dark-300 mb-4">When 3 distinct days of sales are recorded, the algorithm will automatically adjust projections based on velocity and growth trends.</p>
 
           <!-- Progress Bar to ML Threshold -->
           <div class="mb-4">
             <div class="flex items-center justify-between text-xs text-dark-300 mb-1">
-              <span>Data Depth Calibration</span>
+              <span>Progress toward 3-Day Model Milestone</span>
               <span>${Math.round((pred.current_days_count / pred.min_required_days) * 100)}%</span>
             </div>
             <div style="width: 100%; height: 8px; background: rgba(0,0,0,0.2); border-radius: 999px; overflow: hidden;">
@@ -5513,7 +5735,7 @@ async function renderAnalyticsTab() {
               <div class="p-3 rounded-xl text-center" style="background: rgba(234,179,8,0.06); border: 1px solid rgba(234,179,8,0.2);">
                 <div class="text-xs text-dark-300">${label}</div>
                 <div class="text-base font-bold text-white mt-1">₱${Number(pred.forecast_data?.[idx] || 0).toFixed(2)}</div>
-                <div class="text-xs text-yellow-400 mt-0.5" style="font-size: 10px;">Run-Rate Est.</div>
+                <div class="text-xs text-yellow-400 mt-0.5" style="font-size: 10px;">Preliminary</div>
               </div>
             `).join('')}
           </div>
@@ -5523,25 +5745,31 @@ async function renderAnalyticsTab() {
         <div class="card p-6 mb-6 text-center text-dark-300">
           <div class="flex items-center justify-center gap-2 mb-2">
             ${Icons.info({ size: 20, color: 'var(--blue-400)' })}
-            <span class="text-base font-bold text-white">Data Collection Phase</span>
+            <span class="text-base font-bold text-white">Gathering Historical Sales Data</span>
           </div>
           <p class="text-xs text-dark-300">
-            Complete customer orders to begin plotting verified actuals and statistical forecasts.
+            Complete customer orders to activate automated demand forecasting and sales velocity projections.
           </p>
         </div>
       `)}
     </div>
 
     <!-- ======================================================================== -->
-    <!-- SECTION 3: PRESCRIPTIVE RECOMMENDATIONS                                  -->
+    <!-- SECTION 3: PRESCRIPTIVE RECOMMENDATIONS                                   -->
     <!-- ======================================================================== -->
     <div id="section-prescriptive" style="display: ${state.analyticsSection === 'all' || state.analyticsSection === 'prescriptive' ? 'block' : 'none'};" class="mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-bold text-white">Prescriptive Recommendations</h2>
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            ${Icons.sparkles({ size: 20, color: 'var(--purple-400)' })}
+            <span>Actionable Recommendations</span>
+          </h2>
+          <p class="text-xs text-dark-300">Automated operational advice to prevent stockouts, adjust steaming schedules, and optimize dispatch.</p>
+        </div>
         <div class="flex items-center gap-2">
           ${presc.summary?.critical_count > 0 ? `<span class="badge badge-red">${presc.summary.critical_count} Critical</span>` : ''}
-          ${presc.summary?.warning_count > 0 ? `<span class="badge badge-yellow">${presc.summary.warning_count} Warnings</span>` : ''}
-          <span class="badge badge-blue">${presc.summary?.info_count || 0} Notes</span>
+          ${presc.summary?.warning_count > 0 ? `<span class="badge badge-yellow">${presc.summary.warning_count} Warning</span>` : ''}
+          <span class="badge badge-blue">${presc.summary?.info_count || 0} Info</span>
         </div>
       </div>
 
@@ -5552,6 +5780,7 @@ async function renderAnalyticsTab() {
       const isWarning = r.priority === 'warning';
       const borderColor = isCritical ? 'var(--brand-500)' : (isWarning ? 'var(--yellow-500)' : 'var(--blue-500)');
       const badgeClass = isCritical ? 'badge-red' : (isWarning ? 'badge-yellow' : 'badge-blue');
+      const priorityLabel = isCritical ? 'CRITICAL ALERT' : (isWarning ? 'INVENTORY WARNING' : 'STORE ADVICE');
 
       return `
             <div class="card p-5" style="border-left: 4px solid ${borderColor};">
@@ -5562,13 +5791,13 @@ async function renderAnalyticsTab() {
                   </div>
                   <div>
                     <div class="flex items-center gap-2">
-                      <span class="text-sm font-bold text-white">${escapeHtml(r.product || 'General')}</span>
+                      <span class="text-sm font-bold text-white">${escapeHtml(r.product || 'General Operations')}</span>
                       <span class="badge ${badgeClass}" style="font-size: 10px;">${escapeHtml(r.badge || r.category || 'ACTION')}</span>
                     </div>
                   </div>
                 </div>
                 <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full" style="background: rgba(255,255,255,0.06); color: var(--dark-200);">
-                  ${r.priority.toUpperCase()}
+                  ${priorityLabel}
                 </span>
               </div>
 
@@ -5577,20 +5806,20 @@ async function renderAnalyticsTab() {
               </div>
 
               <div class="p-3 rounded-lg mb-2" style="background: rgba(0,0,0,0.04); border: 1px solid var(--dark-600); font-size: 13px;">
-                <span class="font-bold text-white">Action:</span>
+                <span class="font-bold text-white">Recommended Action:</span>
                 <span class="text-dark-200"> ${escapeHtml(r.action)}</span>
               </div>
 
               ${r.rationale ? `
                 <div class="text-xs text-dark-400">
-                  <em>Rationale:</em> ${escapeHtml(r.rationale)}
+                  <em>Reason:</em> ${escapeHtml(r.rationale)}
                 </div>
               ` : ''}
             </div>
           `;
     }).join('') : `
           <div class="card p-6 text-center text-dark-300">
-            All inventory levels and operations are currently within normal baseline parameters.
+            All inventory levels, kitchen steaming, and queue operations are currently optimal. No immediate action required.
           </div>
         `}
       </div>
@@ -5633,6 +5862,53 @@ async function renderAnalyticsTab() {
         initAnalyticsCharts(desc, pred, presc);
       });
     });
+
+    // Attach Customer Traffic & Product Share view mode switcher
+    const gridEl = document.getElementById('combined-charts-grid');
+    const trafficPane = document.getElementById('pane-hourly-traffic');
+    const productPane = document.getElementById('pane-product-share');
+    const toggleBtns = container.querySelectorAll('.traffic-prod-toggle-btn');
+
+    const setChartMode = (mode) => {
+      toggleBtns.forEach(btn => {
+        const isCurrent = (mode === 'both' && btn.id === 'btn-view-both') ||
+                          (mode === 'traffic' && btn.id === 'btn-view-traffic') ||
+                          (mode === 'product' && btn.id === 'btn-view-product');
+        btn.style.background = isCurrent ? 'var(--brand-500)' : 'transparent';
+        btn.style.color = isCurrent ? '#ffffff' : 'var(--dark-300)';
+      });
+
+      if (mode === 'both') {
+        if (trafficPane) { trafficPane.style.display = 'block'; }
+        if (productPane) {
+          productPane.style.display = 'block';
+          productPane.style.borderLeft = '1px solid var(--dark-600)';
+          productPane.style.paddingLeft = '20px';
+        }
+        if (gridEl) gridEl.style.gridTemplateColumns = 'repeat(auto-fit, minmax(290px, 1fr))';
+      } else if (mode === 'traffic') {
+        if (trafficPane) { trafficPane.style.display = 'block'; }
+        if (productPane) { productPane.style.display = 'none'; }
+        if (gridEl) gridEl.style.gridTemplateColumns = '1fr';
+      } else if (mode === 'product') {
+        if (trafficPane) { trafficPane.style.display = 'none'; }
+        if (productPane) {
+          productPane.style.display = 'block';
+          productPane.style.borderLeft = 'none';
+          productPane.style.paddingLeft = '0';
+        }
+        if (gridEl) gridEl.style.gridTemplateColumns = '1fr';
+      }
+
+      setTimeout(() => {
+        state.charts.sales?.resize();
+        state.charts.products?.resize();
+      }, 50);
+    };
+
+    document.getElementById('btn-view-both')?.addEventListener('click', () => setChartMode('both'));
+    document.getElementById('btn-view-traffic')?.addEventListener('click', () => setChartMode('traffic'));
+    document.getElementById('btn-view-product')?.addEventListener('click', () => setChartMode('product'));
 
     // Attach Export CSV button
     document.getElementById('btn-export-analytics-csv')?.addEventListener('click', () => {
@@ -5692,7 +5968,7 @@ function initAnalyticsCharts(desc = {}, pred = {}, presc = {}) {
     const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)';
     const tickColor = isLight ? '#475569' : '#94a3b8';
 
-    // 1. Unified Revenue Timeline Chart: Descriptive Actuals (Solid) & Predictive Forecasts (Dashed)
+    // 1. Unified Revenue Timeline Chart: Descriptive Actuals (Solid per product) & Predictive Forecasts (Dashed)
     const revenueCanvas = document.getElementById('revenueChart');
     if (revenueCanvas) {
       const tf = state.analyticsTimeframe || 'daily';
@@ -5705,6 +5981,13 @@ function initAnalyticsCharts(desc = {}, pred = {}, presc = {}) {
       // Slice last 14 historical intervals for clean readability
       const histLabels = rawHistLabels.slice(-14);
       const histData = rawHistData.slice(-14);
+
+      // Separate product timelines for Siomai, Coke, Royal, Sprite
+      const timelineObj = desc?.product_timeline?.[tf] || {};
+      const rawSiomai = timelineObj.siomai ? timelineObj.siomai.slice(-14) : histData.map(() => 0);
+      const rawCoke   = timelineObj.coke   ? timelineObj.coke.slice(-14)   : histData.map(() => 0);
+      const rawRoyal  = timelineObj.royal  ? timelineObj.royal.slice(-14)  : histData.map(() => 0);
+      const rawSprite = timelineObj.sprite ? timelineObj.sprite.slice(-14) : histData.map(() => 0);
 
       const fLabels = (tf === 'daily' && pred && Array.isArray(pred.forecast_labels)) ? pred.forecast_labels : [];
       const fData = (tf === 'daily' && pred && Array.isArray(pred.forecast_data)) ? pred.forecast_data : [];
@@ -5722,28 +6005,37 @@ function initAnalyticsCharts(desc = {}, pred = {}, presc = {}) {
       };
 
       let combinedLabels = [];
-      let actualSeries = [];
+      let siomaiSeries = [];
+      let cokeSeries = [];
+      let royalSeries = [];
+      let spriteSeries = [];
+      let totalActualSeries = [];
       let forecastSeries = [];
       const nHist = histLabels.length;
 
       if (nHist === 0 && fLabels.length === 0) {
-        combinedLabels = ['No Sales Recorded'];
-        actualSeries = [0];
+        combinedLabels = ['No sales recorded yet'];
+        siomaiSeries = [0];
+        cokeSeries = [0];
+        royalSeries = [0];
+        spriteSeries = [0];
+        totalActualSeries = [0];
         forecastSeries = [0];
       } else {
-        // Historical actual labels + Future forecast labels with distinct [Est] indicator
+        // Historical actual labels + Future forecast labels with distinct indicator
         combinedLabels = [
           ...histLabels.map(formatDate),
-          ...fLabels.map(l => `${formatDate(l)} [Est]`)
+          ...fLabels.map(l => `${formatDate(l)} [Forecast]`)
         ];
 
-        // Actual Series: Verified Firestore data on historical dates, null on future forecast dates
-        actualSeries = [
-          ...histData,
-          ...fLabels.map(() => null)
-        ];
+        // Product Series: actual revenue on historical dates, null on future forecast dates
+        siomaiSeries = [...rawSiomai, ...fLabels.map(() => null)];
+        cokeSeries   = [...rawCoke,   ...fLabels.map(() => null)];
+        royalSeries  = [...rawRoyal,  ...fLabels.map(() => null)];
+        spriteSeries = [...rawSprite, ...fLabels.map(() => null)];
+        totalActualSeries = [...histData, ...fLabels.map(() => null)];
 
-        // Forecast Series: null on past dates, seamlessly bridged at the latest actual date, and forecasted values on future dates
+        // Forecast Series: null on past dates, bridged at the latest actual date, and forecasted values on future dates
         if (fData.length > 0) {
           if (nHist > 0) {
             const lastActualVal = histData[nHist - 1];
@@ -5757,38 +6049,66 @@ function initAnalyticsCharts(desc = {}, pred = {}, presc = {}) {
         }
       }
 
-      const ctx = revenueCanvas.getContext('2d');
-      let actualGradient = null;
-      let forecastGradient = null;
-      if (ctx) {
-        actualGradient = ctx.createLinearGradient(0, 0, 0, 260);
-        actualGradient.addColorStop(0, 'rgba(16, 185, 129, 0.28)');
-        actualGradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
-
-        forecastGradient = ctx.createLinearGradient(0, 0, 0, 260);
-        forecastGradient.addColorStop(0, 'rgba(59, 130, 246, 0.12)');
-        forecastGradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
-      }
-
-      const forecastMethodLabel = pred.has_sufficient_data
-        ? 'Forecasted Revenue (OLS Linear Regression)'
-        : (pred.is_preliminary
-          ? 'Forecasted Revenue (Preliminary Run-Rate Baseline)'
-          : 'Forecasted Revenue (Awaiting Sales Data)');
-
       state.charts.revenue = new Chart(revenueCanvas, {
         type: 'line',
         data: {
           labels: combinedLabels,
           datasets: [
             {
-              label: 'Actual Revenue (Verified Firestore)',
-              data: actualSeries,
+              label: '🥟 HotSpot Siomai',
+              data: siomaiSeries,
+              borderColor: '#f97316',
+              borderWidth: 2.8,
+              backgroundColor: 'rgba(249, 115, 22, 0.08)',
+              fill: false,
+              tension: 0.25,
+              pointBackgroundColor: '#f97316',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 1.5,
+              pointRadius: 4.5,
+              pointHoverRadius: 7,
+              pointStyle: 'circle',
+              spanGaps: false
+            },
+            {
+              label: '🥤 Coke',
+              data: cokeSeries,
+              borderColor: '#ef4444',
+              borderWidth: 2.8,
+              backgroundColor: 'rgba(239, 68, 68, 0.08)',
+              fill: false,
+              tension: 0.25,
+              pointBackgroundColor: '#ef4444',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 1.5,
+              pointRadius: 4.5,
+              pointHoverRadius: 7,
+              pointStyle: 'circle',
+              spanGaps: false
+            },
+            {
+              label: '🍊 Royal',
+              data: royalSeries,
+              borderColor: '#f59e0b',
+              borderWidth: 2.8,
+              backgroundColor: 'rgba(245, 158, 11, 0.08)',
+              fill: false,
+              tension: 0.25,
+              pointBackgroundColor: '#f59e0b',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 1.5,
+              pointRadius: 4.5,
+              pointHoverRadius: 7,
+              pointStyle: 'circle',
+              spanGaps: false
+            },
+            {
+              label: '🟢 Sprite',
+              data: spriteSeries,
               borderColor: '#10b981',
               borderWidth: 2.8,
-              borderDash: [],
-              backgroundColor: actualGradient || 'rgba(16, 185, 129, 0.08)',
-              fill: true,
+              backgroundColor: 'rgba(16, 185, 129, 0.08)',
+              fill: false,
               tension: 0.25,
               pointBackgroundColor: '#10b981',
               pointBorderColor: '#ffffff',
@@ -5799,12 +6119,30 @@ function initAnalyticsCharts(desc = {}, pred = {}, presc = {}) {
               spanGaps: false
             },
             {
-              label: forecastMethodLabel,
+              label: '📈 Total Revenue',
+              data: totalActualSeries,
+              borderColor: '#6366f1',
+              borderWidth: 2,
+              borderDash: [3, 3],
+              backgroundColor: 'rgba(99, 102, 241, 0.04)',
+              fill: false,
+              tension: 0.25,
+              pointBackgroundColor: '#6366f1',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 1.5,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointStyle: 'circle',
+              spanGaps: false,
+              hidden: false
+            },
+            {
+              label: '🔮 Forecast Projection',
               data: forecastSeries,
               borderColor: '#3b82f6',
               borderWidth: 2.5,
               borderDash: [6, 6],
-              backgroundColor: forecastGradient || 'rgba(59, 130, 246, 0.04)',
+              backgroundColor: 'rgba(59, 130, 246, 0.04)',
               fill: false,
               tension: 0.25,
               pointBackgroundColor: '#3b82f6',
@@ -5833,7 +6171,7 @@ function initAnalyticsCharts(desc = {}, pred = {}, presc = {}) {
                 color: isLight ? '#334155' : '#cbd5e1',
                 usePointStyle: true,
                 pointStyleWidth: 12,
-                padding: 14,
+                padding: 12,
                 font: {
                   size: 11,
                   weight: '600',
@@ -5853,21 +6191,13 @@ function initAnalyticsCharts(desc = {}, pred = {}, presc = {}) {
                   const val = context.raw;
                   if (val === null || val === undefined) return null;
                   const formatted = `₱${Number(val).toFixed(2)}`;
-                  if (context.datasetIndex === 0) {
-                    return ` Actual Revenue: ${formatted}`;
-                  } else {
-                    if (context.dataIndex === (nHist - 1) && nHist > 0) {
-                      return ` Baseline Bridge: ${formatted}`;
-                    }
-                    const tag = pred.has_sufficient_data ? 'OLS Regression' : (pred.is_preliminary ? 'Run-Rate Baseline' : 'Projection');
-                    return ` Forecast (${tag}): ${formatted}`;
-                  }
+                  return ` ${context.dataset.label}: ${formatted}`;
                 },
                 afterBody: function (tooltipItems) {
                   if (!tooltipItems || tooltipItems.length === 0) return '';
                   const idx = tooltipItems[0].dataIndex;
                   if (idx >= nHist && nHist > 0) {
-                    return ['\nForecast: Projected estimate based on historical trends.'];
+                    return ['\n🔮 Note: Predictive forecast projection based on recent sales trendline.'];
                   }
                   return '';
                 }
@@ -5917,7 +6247,7 @@ function initAnalyticsCharts(desc = {}, pred = {}, presc = {}) {
         data: {
           labels: hours,
           datasets: [{
-            label: 'Orders',
+            label: 'Orders Completed',
             data: salesData,
             backgroundColor: '#dc2626',
             borderRadius: 6
@@ -5927,7 +6257,12 @@ function initAnalyticsCharts(desc = {}, pred = {}, presc = {}) {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { display: false }
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (context) => ` ${context.raw} completed order(s)`
+              }
+            }
           },
           scales: {
             x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#64748b' } },
@@ -5946,7 +6281,7 @@ function initAnalyticsCharts(desc = {}, pred = {}, presc = {}) {
     if (productCanvas) {
       let labels = [];
       let revValues = [];
-      let bgColors = ['#10b981', '#3b82f6', '#dc2626', '#a855f7', '#eab308', '#ec4899', '#06b6d4'];
+      let bgColors = ['#f97316', '#ef4444', '#f59e0b', '#10b981', '#a855f7', '#06b6d4', '#ec4899'];
 
       const topProductsWithRev = (desc.top_products || []).filter(p => Number(p.revenue || 0) > 0);
 
@@ -5957,7 +6292,7 @@ function initAnalyticsCharts(desc = {}, pred = {}, presc = {}) {
         labels = desc.top_products.map(p => `${p.name} (${p.quantity} sold)`);
         revValues = desc.top_products.map(p => p.quantity);
       } else {
-        labels = ['No Completed Sales Recorded'];
+        labels = ['No sales recorded yet'];
         revValues = [1];
         bgColors = ['rgba(148, 163, 184, 0.2)'];
       }

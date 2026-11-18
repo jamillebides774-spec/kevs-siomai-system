@@ -133,23 +133,62 @@ def get_descriptive_analytics(db, Sale, Order, OrderItem, Product):
     else:
         orders_df = pd.DataFrame(columns=['id', 'type', 'order_type', 'status', 'total', 'date', 'hour', 'payment_method'])
 
-    # --- Order Items DataFrame ---
+    # --- Order Items DataFrame with date & order validity ---
     if order_items:
-        items_df = pd.DataFrame([
-            {
+        items_list = []
+        for i in order_items:
+            o = i.order
+            o_date = _to_ph_dt(o.created_at).date() if o and o.created_at else today
+            is_valid = bool(o and o.status != 'cancelled' and (o.status in ('completed', 'delivered') or o.payment_status == 'confirmed'))
+            is_active = bool(o and o.status != 'cancelled')
+            subtot = float(i.subtotal if (i.subtotal is not None and i.subtotal > 0) else ((i.unit_price or 0.0) * (i.quantity or 1)))
+            items_list.append({
                 'order_id': i.order_id,
                 'product_id': i.product_id,
                 'product_name': i.product.name if i.product else 'Unknown',
                 'quantity': int(i.quantity or 1),
-                'subtotal': float(i.subtotal or 0.0)
-            }
-            for i in order_items
-        ])
+                'subtotal': subtot,
+                'date': o_date,
+                'is_valid': is_valid,
+                'is_active': is_active
+            })
+        items_df = pd.DataFrame(items_list)
     else:
-        items_df = pd.DataFrame(columns=['order_id', 'product_id', 'product_name', 'quantity', 'subtotal'])
+        items_df = pd.DataFrame(columns=['order_id', 'product_id', 'product_name', 'quantity', 'subtotal', 'date', 'is_valid', 'is_active'])
+
+    def _item_category_key(p_name):
+        n = str(p_name).strip().lower()
+        if 'siomai' in n:
+            return 'siomai'
+        if 'coke' in n or 'coca' in n:
+            return 'coke'
+        if 'royal' in n:
+            return 'royal'
+        if 'sprite' in n:
+            return 'sprite'
+        return 'other'
+
+    if not items_df.empty:
+        items_df['cat_key'] = items_df['product_name'].apply(_item_category_key)
+        items_df['date'] = pd.to_datetime(items_df['date']).dt.date
+    else:
+        items_df['cat_key'] = []
+
+    # Valid completed/delivered order items
+    valid_items_df = items_df[items_df['is_valid'] == True].copy() if not items_df.empty else items_df
+    if not valid_items_df.empty:
+        valid_items_df['cat_key'] = valid_items_df['product_name'].apply(_item_category_key)
+        valid_items_df['date'] = pd.to_datetime(valid_items_df['date']).dt.date
+    else:
+        valid_items_df['cat_key'] = []
 
     # --- Daily Sales (last 30 days) ---
     daily_labels = [(today - timedelta(days=i)).isoformat() for i in range(29, -1, -1)]
+    daily_siomai = [0.0] * 30
+    daily_coke = [0.0] * 30
+    daily_royal = [0.0] * 30
+    daily_sprite = [0.0] * 30
+
     if not sales_df.empty:
         sales_df['date'] = pd.to_datetime(sales_df['date']).dt.date
         daily_grp = sales_df.groupby('date')['amount'].sum()
@@ -157,17 +196,40 @@ def get_descriptive_analytics(db, Sale, Order, OrderItem, Product):
     else:
         daily_sales = [0.0] * 30
 
+    if not valid_items_df.empty:
+        for idx, i in enumerate(range(29, -1, -1)):
+            target_d = today - timedelta(days=i)
+            day_items = valid_items_df[valid_items_df['date'] == target_d]
+            if not day_items.empty:
+                daily_siomai[idx] = float(day_items[day_items['cat_key'] == 'siomai']['subtotal'].sum())
+                daily_coke[idx] = float(day_items[day_items['cat_key'] == 'coke']['subtotal'].sum())
+                daily_royal[idx] = float(day_items[day_items['cat_key'] == 'royal']['subtotal'].sum())
+                daily_sprite[idx] = float(day_items[day_items['cat_key'] == 'sprite']['subtotal'].sum())
+
     # --- Weekly Sales (last 8 weeks) ---
     week_labels = []
     weekly_sales = []
+    weekly_siomai = [0.0] * 8
+    weekly_coke = [0.0] * 8
+    weekly_royal = [0.0] * 8
+    weekly_sprite = [0.0] * 8
+
     if not sales_df.empty:
-        for w in range(7, -1, -1):
+        for w_idx, w in enumerate(range(7, -1, -1)):
             week_start = today - timedelta(weeks=w + 1)
             week_end = today - timedelta(weeks=w)
             mask = [(d >= week_start and d < week_end) for d in sales_df['date']]
             total = float(sales_df[mask]['amount'].sum()) if any(mask) else 0.0
             weekly_sales.append(total)
             week_labels.append(week_start.strftime('Week of %b %d'))
+
+            if not valid_items_df.empty:
+                w_items = valid_items_df[(valid_items_df['date'] >= week_start) & (valid_items_df['date'] < week_end)]
+                if not w_items.empty:
+                    weekly_siomai[w_idx] = float(w_items[w_items['cat_key'] == 'siomai']['subtotal'].sum())
+                    weekly_coke[w_idx] = float(w_items[w_items['cat_key'] == 'coke']['subtotal'].sum())
+                    weekly_royal[w_idx] = float(w_items[w_items['cat_key'] == 'royal']['subtotal'].sum())
+                    weekly_sprite[w_idx] = float(w_items[w_items['cat_key'] == 'sprite']['subtotal'].sum())
     else:
         weekly_sales = [0.0] * 8
         week_labels = [(today - timedelta(weeks=w)).strftime('Week of %b %d') for w in range(7, -1, -1)]
@@ -175,8 +237,13 @@ def get_descriptive_analytics(db, Sale, Order, OrderItem, Product):
     # --- Monthly Sales (last 6 months) ---
     monthly_labels = []
     monthly_sales = []
+    monthly_siomai = [0.0] * 6
+    monthly_coke = [0.0] * 6
+    monthly_royal = [0.0] * 6
+    monthly_sprite = [0.0] * 6
+
     if not sales_df.empty:
-        for m in range(5, -1, -1):
+        for m_idx, m in enumerate(range(5, -1, -1)):
             if m == 0:
                 year, month = today.year, today.month
             else:
@@ -188,6 +255,14 @@ def get_descriptive_analytics(db, Sale, Order, OrderItem, Product):
             total = float(sales_df[mask]['amount'].sum()) if any(mask) else 0.0
             monthly_sales.append(total)
             monthly_labels.append(datetime(year, month, 1).strftime('%b %Y'))
+
+            if not valid_items_df.empty:
+                m_items = valid_items_df[[d.year == year and d.month == month for d in valid_items_df['date']]]
+                if not m_items.empty:
+                    monthly_siomai[m_idx] = float(m_items[m_items['cat_key'] == 'siomai']['subtotal'].sum())
+                    monthly_coke[m_idx] = float(m_items[m_items['cat_key'] == 'coke']['subtotal'].sum())
+                    monthly_royal[m_idx] = float(m_items[m_items['cat_key'] == 'royal']['subtotal'].sum())
+                    monthly_sprite[m_idx] = float(m_items[m_items['cat_key'] == 'sprite']['subtotal'].sum())
     else:
         monthly_sales = [0.0] * 6
         monthly_labels = [(today - timedelta(days=30 * m)).strftime('%b %Y') for m in range(5, -1, -1)]
@@ -206,16 +281,31 @@ def get_descriptive_analytics(db, Sale, Order, OrderItem, Product):
         total_orders = total_completed = active_orders_count = cancelled_count = 0
         walkin_count = online_count = pickup_count = delivery_count = 0
 
-    # --- Top Products (strictly computed from order items) ---
+    # --- Top Products (strictly computed from valid order items) ---
     top_products = []
-    if not items_df.empty:
-        top_grp = items_df.groupby('product_name').agg({'quantity': 'sum', 'subtotal': 'sum'}).reset_index()
+    items_to_rank = valid_items_df if not valid_items_df.empty else items_df
+    if not items_to_rank.empty:
+        top_grp = items_to_rank.groupby('product_name').agg({'quantity': 'sum', 'subtotal': 'sum'}).reset_index()
         top_grp = top_grp.sort_values('quantity', ascending=False).head(10)
+
+        def _resolve_unit(name):
+            n = (name or '').lower()
+            if 'siomai' in n:
+                return 'packs'
+            if any(d in n for d in ('coke', 'sprite', 'royal')):
+                return 'bottles'
+            if 'calamansi' in n:
+                return 'piece'
+            if any(s in n for s in ('soy', 'chilli', 'chili', 'garlic')):
+                return 'packs'
+            return 'packs'
+
         top_products = [
             {
                 'name': r['product_name'],
                 'quantity': int(r['quantity']),
-                'revenue': float(r['subtotal'])
+                'revenue': float(r['subtotal']),
+                'unit': _resolve_unit(r['product_name'])
             }
             for _, r in top_grp.iterrows()
         ]
@@ -259,6 +349,27 @@ def get_descriptive_analytics(db, Sale, Order, OrderItem, Product):
     total_items_sold = int(items_df['quantity'].sum()) if not items_df.empty else 0
     avg_items_per_order = round(total_items_sold / total_completed, 1) if total_completed > 0 else 0.0
 
+    # Daily Siomai Sales & Daily Limit Tracker (200 pieces daily cap @ ₱10/pc, target ₱2,000.00)
+    # Includes all non-cancelled orders today (both active/preparing and completed) so placing an order immediately updates tracker
+    today_siomai_items = items_df[(items_df['date'] == today) & (items_df['is_active'] == True) & (items_df['cat_key'] == 'siomai')] if not items_df.empty else pd.DataFrame()
+    today_siomai_qty = int(today_siomai_items['quantity'].sum()) if not today_siomai_items.empty else 0
+    today_siomai_rev = float(today_siomai_items['subtotal'].sum()) if not today_siomai_items.empty else 0.0
+
+    daily_siomai_quota = {
+        "target_pieces": 200,
+        "sold_pieces": today_siomai_qty,
+        "remaining_pieces": max(0, 200 - today_siomai_qty),
+        "quota_percentage": min(100.0, round((today_siomai_qty / 200.0) * 100.0, 1)),
+        "today_revenue": today_siomai_rev,
+        "target_revenue": 2000.0,
+        "is_limit_reached": bool(today_siomai_qty >= 200),
+        "is_warning": bool((200 - today_siomai_qty) <= 50 and today_siomai_qty < 200),
+        "target_packs": 4,
+        "pieces_per_pack": 50,
+        "sold_packs": round(today_siomai_qty / 50.0, 2),
+        "remaining_packs": max(0.0, round((200 - today_siomai_qty) / 50.0, 2))
+    }
+
     has_data = total_sales_revenue > 0 or len(sales) > 0 or len(orders) > 0
 
     return {
@@ -274,6 +385,7 @@ def get_descriptive_analytics(db, Sale, Order, OrderItem, Product):
         "average_order_value": avg_order_value,
         "average_items_per_order": avg_items_per_order,
         "total_items_sold": total_items_sold,
+        "daily_siomai_quota": daily_siomai_quota,
         "top_selling_product": top_products[0] if top_products else {
             "name": "No sales recorded yet", "quantity": 0, "revenue": 0.0
         },
@@ -293,6 +405,32 @@ def get_descriptive_analytics(db, Sale, Order, OrderItem, Product):
         "daily_sales": {"labels": daily_labels, "data": daily_sales},
         "weekly_sales": {"labels": week_labels, "data": weekly_sales},
         "monthly_sales": {"labels": monthly_labels, "data": monthly_sales},
+        "product_timeline": {
+            "daily": {
+                "labels": daily_labels,
+                "siomai": daily_siomai,
+                "coke": daily_coke,
+                "royal": daily_royal,
+                "sprite": daily_sprite,
+                "total": daily_sales
+            },
+            "weekly": {
+                "labels": week_labels,
+                "siomai": weekly_siomai,
+                "coke": weekly_coke,
+                "royal": weekly_royal,
+                "sprite": weekly_sprite,
+                "total": weekly_sales
+            },
+            "monthly": {
+                "labels": monthly_labels,
+                "siomai": monthly_siomai,
+                "coke": monthly_coke,
+                "royal": monthly_royal,
+                "sprite": monthly_sprite,
+                "total": monthly_sales
+            }
+        },
         "top_products": top_products,
         "peak_hours": peak_hours,
         "actual_peak_hours": actual_peaks,
@@ -625,6 +763,54 @@ def get_prescriptive_analytics(db, Sale, Order, OrderItem, Product):
             }
             inventory_alerts.append(alert)
             recommendations.append(alert)
+
+    # ─────────────────────────────────────────────────────────────
+    # 1.5. DAILY SIOMAI ALLOCATION & QUOTA THRESHOLD (200 pcs daily limit)
+    # ─────────────────────────────────────────────────────────────
+    quota_info = descriptive.get('daily_siomai_quota', {})
+    if quota_info:
+        sold_pcs = quota_info.get('sold_pieces', 0)
+        rem_pcs = quota_info.get('remaining_pieces', 200)
+
+        if quota_info.get('is_limit_reached'):
+            quota_rec = {
+                'type': 'allocation',
+                'category': 'Daily Allocation Threshold',
+                'priority': 'critical',
+                'icon': '🚫',
+                'badge': 'DAILY LIMIT REACHED',
+                'product': 'HotSpot Siomai',
+                'message': f"Daily threshold reached: {sold_pcs} pieces sold today (200 pcs daily limit).",
+                'action': "Mark HotSpot Siomai as Sold Out for today. Keep reserve stock sealed for tomorrow.",
+                'rationale': "Enforcing the 200-piece daily limit controls daily food cost and ensures fresh batches each morning."
+            }
+            recommendations.append(quota_rec)
+        elif quota_info.get('is_warning'):
+            quota_rec = {
+                'type': 'allocation',
+                'category': 'Daily Allocation Threshold',
+                'priority': 'warning',
+                'icon': '⚠️',
+                'badge': 'LOW DAILY STOCK',
+                'product': 'HotSpot Siomai',
+                'message': f"Low daily stock: Only {rem_pcs} pieces remaining from today's 200-piece daily limit.",
+                'action': "Steam final batches and notify cashier staff of limited daily siomai availability.",
+                'rationale': "Warns counter staff before daily quota sells out completely during peak rushes."
+            }
+            recommendations.append(quota_rec)
+        else:
+            quota_rec = {
+                'type': 'allocation',
+                'category': 'Daily Allocation Threshold',
+                'priority': 'info',
+                'icon': '🥟',
+                'badge': 'DAILY ALLOCATION',
+                'product': 'HotSpot Siomai',
+                'message': f"Daily allocation on track: {sold_pcs}/200 pieces sold ({rem_pcs} pieces remaining today).",
+                'action': "Continue standard 30–40 pc batch steaming in steamer as orders arrive.",
+                'rationale': "Daily pacing maintains high food quality and prevents oversteaming."
+            }
+            recommendations.append(quota_rec)
 
     # ─────────────────────────────────────────────────────────────
     # 2. KITCHEN PREPARATION & BATCHING PRESCRIPTIONS
